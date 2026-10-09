@@ -18,12 +18,16 @@
 
     <style>
         body { font-family: 'Inter', sans-serif; }
-        /* Prevent text selection, copying, and highlighting */
         .no-copy {
             -webkit-user-select: none;
             -moz-user-select: none;
             -ms-user-select: none;
             user-select: none;
+        }
+        @media print {
+            body * { visibility: hidden; }
+            #certificateModal, #certificateModal * { visibility: visible; }
+            #certificateModal { position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: white !important; }
         }
     </style>
 </head>
@@ -101,6 +105,58 @@
         </div>
     </div>
 
+    <!-- Admin Worker Progress Dashboard Modal -->
+    <div id="dashboardModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full overflow-hidden border border-slate-200 max-h-[90vh] flex flex-col">
+            <div class="bg-purple-900 text-white px-6 py-4 flex items-center justify-between">
+                <span class="font-bold text-sm"><i class="fa-solid fa-users-line"></i> Admin Worker Progress Dashboard</span>
+                <button onclick="closeDashboardModal()" class="text-purple-200 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto flex-grow">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr class="bg-slate-100 text-slate-700 uppercase">
+                            <th class="p-3 border-b">Full Name</th>
+                            <th class="p-3 border-b">Email Address</th>
+                            <th class="p-3 border-b">Progress Level</th>
+                            <th class="p-3 border-b">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="workersTableBody">
+                        <tr><td colspan="4" class="p-4 text-center text-slate-500">Loading worker records...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Certificate Modal -->
+    <div id="certificateModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full p-8 border-8 border-purple-900 text-center space-y-6 relative">
+            <button onclick="closeCertificate()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark text-xl"></i></button>
+            <div class="space-y-2">
+                <div class="text-purple-900 text-3xl"><i class="fa-solid fa-award"></i></div>
+                <h3 class="font-serif text-2xl font-bold text-purple-900 uppercase tracking-widest">Certificate of Completion</h3>
+                <p class="text-xs text-slate-500 uppercase tracking-wider">PDM Global Workers LMS • Living Holiness Training</p>
+            </div>
+            <div class="space-y-3 py-4">
+                <p class="text-xs text-slate-600 uppercase">This is proudly presented to</p>
+                <h2 id="certWorkerName" class="font-serif text-3xl font-bold text-slate-900 border-b-2 border-purple-200 pb-2 inline-block px-8">Worker Name</h2>
+                <p class="text-xs text-slate-600 max-w-md mx-auto pt-2">For successfully completing all 9 modules and passing the final requirements of the Living Holiness Workers' Training Course.</p>
+            </div>
+            <div class="flex justify-between items-center pt-4 border-t border-slate-200 text-xs">
+                <div>
+                    <p class="font-bold text-slate-800">Pastor Helen Olabiyi</p>
+                    <p class="text-slate-500">Tutor / Founder</p>
+                </div>
+                <div>
+                    <button onclick="window.print()" class="bg-purple-700 text-white px-5 py-2.5 rounded-xl font-semibold shadow hover:bg-purple-800"><i class="fa-solid fa-print"></i> Print Certificate</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Header -->
     <header class="bg-purple-900 text-white shadow-md sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 py-3 flex items-center justify-between">
@@ -112,6 +168,9 @@
                 </div>
             </div>
             <div class="flex items-center space-x-3">
+                <button id="dashboardNavBtn" onclick="openDashboardModal()" class="hidden text-xs bg-emerald-700 hover:bg-emerald-800 text-white px-3 py-1.5 rounded-lg font-semibold shadow">
+                    <i class="fa-solid fa-users"></i> Worker Dashboard
+                </button>
                 <button id="adminNavBtn" onclick="openAdminModal()" class="hidden text-xs bg-indigo-700 hover:bg-indigo-800 text-white px-3 py-1.5 rounded-lg font-semibold shadow">
                     <i class="fa-solid fa-gear"></i> Admin Upload
                 </button>
@@ -130,8 +189,13 @@
                 <h2 id="workerProgressTitle" class="text-lg font-bold text-slate-900">Loading your progress...</h2>
                 <p id="workerProgressSub" class="text-xs text-slate-500">Complete tests with 60% or higher to advance.</p>
             </div>
-            <div class="w-full sm:w-64 bg-slate-100 rounded-full h-4 overflow-hidden border border-slate-200">
-                <div id="progressBar" class="bg-purple-600 h-full transition-all duration-500" style="width: 0%"></div>
+            <div class="flex items-center gap-4 w-full sm:w-auto">
+                <div id="certButtonContainer" class="hidden">
+                    <button onclick="openCertificate()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-semibold text-xs shadow flex items-center gap-2"><i class="fa-solid fa-award"></i> View Certificate</button>
+                </div>
+                <div class="w-full sm:w-64 bg-slate-100 rounded-full h-4 overflow-hidden border border-slate-200">
+                    <div id="progressBar" class="bg-purple-600 h-full transition-all duration-500" style="width: 0%"></div>
+                </div>
             </div>
         </div>
 
@@ -168,7 +232,6 @@
     </main>
 
     <script>
-        // Disable keyboard shortcuts for copying
         document.addEventListener('keydown', function(e) {
             if (e.ctrlKey && (e.key === 'c' || e.key === 'a' || e.key === 'u' || e.key === 's' || e.key === 'p')) {
                 e.preventDefault();
@@ -203,8 +266,10 @@
                 
                 if (user.email.includes('admin') || user.email === 'pastorhelen@pdmglobal.org') {
                     document.getElementById('adminNavBtn').classList.remove('hidden');
+                    document.getElementById('dashboardNavBtn').classList.remove('hidden');
                 } else {
                     document.getElementById('adminNavBtn').classList.add('hidden');
+                    document.getElementById('dashboardNavBtn').classList.add('hidden');
                 }
 
                 const userDocRef = db.collection('users').doc(user.uid);
@@ -215,7 +280,6 @@
                     highestCompletedModule = data.highestCompletedModule || 1;
                     workerFullName = data.fullName || user.email;
                 } else {
-                    // Default registration fallback record
                     await userDocRef.set({ 
                         email: user.email, 
                         fullName: user.email,
@@ -249,7 +313,6 @@
             try {
                 if (isRegisterMode) {
                     const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-                    // Save complete registration details in Firestore users collection
                     await db.collection('users').doc(userCredential.user.uid).set({ 
                         email: email, 
                         fullName: fullName,
@@ -266,13 +329,18 @@
         }
 
         function updateProgressUI() {
-            // Calculate progress percentage out of 9 modules
             const completedCount = highestCompletedModule - 1;
             const percentage = Math.round((completedCount / 9) * 100);
             
             document.getElementById('workerProgressTitle').innerText = `${workerFullName} — Level ${highestCompletedModule} of 9 Unlocked`;
             document.getElementById('workerProgressSub').innerText = `Course Completion: ${percentage}% (${completedCount}/9 modules passed)`;
             document.getElementById('progressBar').style.width = `${percentage}%`;
+
+            if (highestCompletedModule > 9) {
+                document.getElementById('certButtonContainer').classList.remove('hidden');
+            } else {
+                document.getElementById('certButtonContainer').classList.add('hidden');
+            }
         }
 
         async function fetchModulesFromFirebase() {
@@ -466,6 +534,46 @@
         function openAdminModal() { document.getElementById('adminModal').classList.remove('hidden'); }
         function closeAdminModal() { document.getElementById('adminModal').classList.add('hidden'); }
 
+        async function openDashboardModal() {
+            document.getElementById('dashboardModal').classList.remove('hidden');
+            const tbody = document.getElementById('workersTableBody');
+            tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-500">Loading worker records...</td></tr>`;
+
+            try {
+                const snapshot = await db.collection('users').get();
+                let rows = '';
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const level = data.highestCompletedModule || 1;
+                    const completed = level - 1;
+                    const status = completed >= 9 ? '<span class="text-green-600 font-bold">Completed 🎉</span>' : `<span class="text-purple-700 font-semibold">In Progress (${completed}/9)</span>`;
+                    
+                    rows += `
+                        <tr class="border-b hover:bg-slate-50">
+                            <td class="p-3 font-semibold">${data.fullName || 'N/A'}</td>
+                            <td class="p-3 text-slate-600">${data.email}</td>
+                            <td class="p-3">Level ${level}</td>
+                            <td class="p-3">${status}</td>
+                        </tr>
+                    `;
+                });
+                tbody.innerHTML = rows || `<tr><td colspan="4" class="p-4 text-center text-slate-500">No registered workers found.</td></tr>`;
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-red-500">Error loading workers: ${err.message}</td></tr>`;
+            }
+        }
+
+        function closeDashboardModal() { document.getElementById('dashboardModal').classList.add('hidden'); }
+
+        function openCertificate() {
+            document.getElementById('certWorkerName').innerText = workerFullName;
+            document.getElementById('certificateModal').classList.remove('hidden');
+        }
+
+        function closeCertificate() {
+            document.getElementById('certificateModal').classList.add('hidden');
+        }
+
         async function handleAdminUpload(event) {
             event.preventDefault();
             const moduleId = parseInt(document.getElementById('adminModId').value);
@@ -498,13 +606,13 @@
             });
             const total = m.quiz.length * 2;
             const percentage = (score / total) * 100;
-            const passMark = percentage >= 60;
+            const passMark = percentage >= 60; // 60% pass mark
 
             const resDiv = document.getElementById('quizResult');
             if (passMark) {
                 resDiv.innerHTML = `Your Score: ${score}/${total} (${percentage}%) - <span class="text-green-600">PASSED 🎉 Next module unlocked in cloud database!</span>`;
                 
-                if (currentModuleId >= highestCompletedModule && currentModuleId < 9) {
+                if (currentModuleId >= highestCompletedModule && currentModuleId <= 9) {
                     highestCompletedModule = currentModuleId + 1;
                     if (auth.currentUser) {
                         await db.collection('users').doc(auth.currentUser.uid).update({
@@ -513,6 +621,10 @@
                     }
                     updateProgressUI();
                     renderSidebar();
+
+                    if (highestCompletedModule > 9) {
+                        setTimeout(() => openCertificate(), 1000);
+                    }
                 }
             } else {
                 resDiv.innerHTML = `Your Score: ${score}/${total} (${percentage}%) - <span class="text-red-600">FAILED - You need at least 60% to unlock the next module. Please review and retake.</span>`;
