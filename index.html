@@ -30,10 +30,14 @@
                     <i class="fa-solid fa-book-bible"></i>
                 </div>
                 <h2 class="font-bold text-xl tracking-tight">PDM Living Holiness LMS</h2>
-                <p class="text-xs text-purple-200">Founder: Pastor Helen Olabiyi</p>
+                <p class="text-xs text-purple-200">Founder/Pastor: Pastor Helen Olabiyi[cite: 6]</p>
             </div>
             
             <form id="authForm" onsubmit="handleAuth(event)" class="p-8 space-y-4">
+                <div id="nameFieldGroup" class="space-y-1 hidden">
+                    <label class="block text-xs font-bold text-slate-700 uppercase">Full Name</label>
+                    <input type="text" id="inputName" placeholder="Deborah Johnson" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm">
+                </div>
                 <div class="space-y-1">
                     <label class="block text-xs font-bold text-slate-700 uppercase">Email Address</label>
                     <input type="email" id="inputEmail" required placeholder="worker@pdmglobal.org" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm">
@@ -63,7 +67,7 @@
                 <div class="bg-white/10 p-2.5 rounded-xl text-purple-200"><i class="fa-solid fa-book-bible text-xl"></i></div>
                 <div>
                     <h1 class="font-bold text-base">Living Holiness Workers' Training</h1>
-                    <p class="text-xs text-purple-200">Purpose Driven Ministry (PDM) Abijo G.R.A.</p>
+                    <p class="text-xs text-purple-200">Purpose Driven Ministry (PDM) Abijo G.R.A.[cite: 6]</p>
                 </div>
             </div>
             <div class="flex items-center space-x-3">
@@ -78,7 +82,7 @@
             <!-- Sidebar Modules -->
             <div class="space-y-4">
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-3">
-                    <h3 class="font-bold text-slate-900 text-xs uppercase tracking-wider"><i class="fa-solid fa-list-check text-purple-700"></i> Course Modules (9)</h3>
+                    <h3 class="font-bold text-slate-900 text-xs uppercase tracking-wider"><i class="fa-solid fa-list-check text-purple-700"></i> Course Modules (9)[cite: 7]</h3>
                     <div id="sidebarModules" class="space-y-2 max-h-[70vh] overflow-y-auto pr-1"></div>
                 </div>
             </div>
@@ -94,10 +98,10 @@
                     
                     <!-- Quiz Section -->
                     <div id="quizSection" class="border-t border-slate-200 pt-6 mt-6 hidden">
-                        <h3 class="font-bold text-lg text-slate-900 mb-4"><i class="fa-solid fa-pen-to-square text-purple-700"></i> Module Test (10 Marks)</h3>
+                        <h3 class="font-bold text-lg text-slate-900 mb-4"><i class="fa-solid fa-pen-to-square text-purple-700"></i> Module Test (10 Marks)[cite: 7]</h3>
                         <div id="quizContainer" class="space-y-6"></div>
                         <button onclick="submitQuiz()" class="mt-6 bg-purple-700 hover:bg-purple-800 text-white font-semibold px-6 py-3 rounded-xl text-sm shadow transition">
-                            Submit Test
+                            Submit Test & Unlock Next Module
                         </button>
                         <div id="quizResult" class="mt-4 font-bold text-sm"></div>
                     </div>
@@ -124,11 +128,25 @@
         let isRegisterMode = false;
         let modulesData = [];
         let currentModuleId = 1;
+        let highestCompletedModule = 1; // Stored securely in Firestore
 
         auth.onAuthStateChanged(async (user) => {
             if (user) {
                 document.getElementById('authModal').classList.add('hidden');
                 document.getElementById('navUserName').innerText = user.email;
+                
+                // Fetch worker's secure progress directly from Firestore
+                const userDocRef = db.collection('users').doc(user.uid);
+                const userDoc = await userDocRef.get();
+                
+                if (userDoc.exists) {
+                    highestCompletedModule = userDoc.data().highestCompletedModule || 1;
+                } else {
+                    // Initialize new user profile in database with level 1
+                    await userDocRef.set({ email: user.email, highestCompletedModule: 1 });
+                    highestCompletedModule = 1;
+                }
+
                 await fetchModulesFromFirebase();
             } else {
                 document.getElementById('authModal').classList.remove('hidden');
@@ -137,6 +155,7 @@
 
         function toggleAuthMode() {
             isRegisterMode = !isRegisterMode;
+            document.getElementById('nameFieldGroup').classList.toggle('hidden', !isRegisterMode);
             document.getElementById('authSubmitBtn').innerText = isRegisterMode ? 'Register Account' : 'Sign In to Portal';
             document.getElementById('authToggleText').innerText = isRegisterMode ? 'Already have an account? Sign in' : 'Need an account? Register here';
         }
@@ -147,7 +166,9 @@
             const password = document.getElementById('inputPassword').value;
             try {
                 if (isRegisterMode) {
-                    await auth.createUserWithEmailAndPassword(email, password);
+                    const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                    // Create Firestore profile for new registration
+                    await db.collection('users').doc(userCredential.user.uid).set({ email: email, highestCompletedModule: 1 });
                     alert("Account created successfully!");
                 } else {
                     await auth.signInWithEmailAndPassword(email, password);
@@ -165,24 +186,24 @@
                     modulesData.push(doc.data());
                 });
 
-                if (modulesData.length === 0) {
-                    await seedDefaultModules();
+                if (modulesData.length < 9) {
+                    await seedAllModules();
                 } else {
                     renderSidebar();
-                    loadModule(modulesData[0].moduleId);
+                    loadModule(currentModuleId);
                 }
             } catch (err) {
                 console.error("Error fetching modules:", err);
             }
         }
 
-        async function seedDefaultModules() {
-            const defaultModules = [
+        async function seedAllModules() {
+            const allModules = [
                 {
                     moduleId: 1,
                     tag: "Week 1 • Module 1",
                     title: "The Call to Holiness",
-                    content: "<strong>Memory Verse:</strong> \"Because it is written, Be ye holy; for I am holy.\" - 1 Peter 1:16<br><br><strong>Teaching Points:</strong><br>1. Holiness starts with who God is. God is holy (Isaiah 6:3). Holiness means separated from sin and set apart for God.<br>2. Holiness is commanded for every believer (1 Peter 1:15-16). It is not reserved for pastors.<br>3. Holiness is required for heaven (Hebrews 12:14).<br>4. Holiness has two sides: separation from sin and dedication to God.<br>5. Holiness flows from love for God, not legalism (John 14:15).",
+                    content: "<strong>Memory Verse:</strong> \"Because it is written, Be ye holy; for I am holy.\" - 1 Peter 1:16[cite: 8]<br><br><strong>Teaching Points:</strong><br>1. Holiness starts with who God is. God is holy (Isaiah 6:3; Revelation 4:8)[cite: 8].<br>2. Holiness is commanded for every believer (1 Peter 1:15-16; 1 Thess. 4:7)[cite: 8].<br>3. Holiness is required for heaven (Hebrews 12:14; Revelation 21:27)[cite: 8].<br>4. Holiness has two sides: separation from sin and dedication to God[cite: 8].<br>5. Holiness flows from love for God, not legalism[cite: 8].",
                     quiz: [
                         { q: "Holiness simply means:", options: ["Never smiling", "Being separated from sin and set apart for God", "Wearing white", "Attending every service"], answer: 1 },
                         { q: "True or False: Holiness is only required of pastors and ministers.", options: ["True", "False"], answer: 1 },
@@ -193,17 +214,93 @@
                     moduleId: 2,
                     tag: "Week 1 • Module 2",
                     title: "Repentance, New Birth and Restitution",
-                    content: "<strong>Memory Verse:</strong> \"He that covereth his sins shall not prosper...\" - Proverbs 28:13<br><br><strong>Teaching Points:</strong><br>1. Holiness begins with the new birth (John 3:3-5).<br>2. Repentance is godly sorrow plus a decision to stop sinning.<br>3. Justification: God cleanses and declares us righteous (Romans 5:1).<br>4. Restitution is evidence of true repentance: returning stolen items, paying debts, and clearing your conscience.",
+                    content: "<strong>Memory Verse:</strong> \"He that covereth his sins shall not prosper...\" - Proverbs 28:13[cite: 9]<br><br><strong>Teaching Points:</strong><br>1. Holiness begins with the new birth (John 3:3-5; 2 Cor. 5:17)[cite: 9].<br>2. Repentance is godly sorrow plus a decision to stop (2 Cor. 7:10)[cite: 9].<br>3. Justification: God cleanses and declares us righteous (Romans 5:1)[cite: 9].<br>4. Restitution is evidence of true repentance: returning stolen items and making past wrongs right[cite: 9].",
                     quiz: [
                         { q: "Repentance is:", options: ["Feeling sorry only", "Godly sorrow with a decision to abstain from sin", "Paying money to the church", "Joining a department"], answer: 1 },
                         { q: "True or False: Restitution is a sign of true repentance.", options: ["True", "False"], answer: 0 },
                         { q: "Which man in Luke 19 promised to restore fourfold?", options: ["Peter", "Nicodemus", "Zacchaeus", "Judas"], answer: 2 }
                     ]
+                },
+                {
+                    moduleId: 3,
+                    tag: "Week 1 • Module 3",
+                    title: "Sanctification - God's Work in the Heart",
+                    content: "<strong>Memory Verse:</strong> \"And the very God of peace sanctify you wholly...\" - 1 Thess. 5:23-24[cite: 10]<br><br><strong>Teaching Points:</strong><br>1. Sanctification is God's will for you (1 Thess. 4:3)[cite: 10].<br>2. A work of grace received by faith in the blood of Jesus[cite: 10].<br>3. God's part: the blood cleanses; our part: consecration and yielding daily[cite: 10].",
+                    quiz: [
+                        { q: "According to 1 Thess. 4:3, what is the will of God for believers?", options: ["Wealth", "Sanctification", "Fame", "Marriage"], answer: 1 },
+                        { q: "True or False: Sanctification is received by faith in the blood of Jesus.", options: ["True", "False"], answer: 0 },
+                        { q: "Which word describes the daily yielding of ourselves to God?", options: ["Prosperity", "Consecration", "Success", "Vision"], answer: 1 }
+                    ]
+                },
+                {
+                    moduleId: 4,
+                    tag: "Week 2 • Module 4",
+                    title: "Purity of Heart and Mind",
+                    content: "<strong>Memory Verse:</strong> \"Blessed are the pure in heart: for they shall see God.\" - Matthew 5:8[cite: 11]<br><br><strong>Teaching Points:</strong><br>1. Sin starts in the heart (Mark 7:21-23; James 1:14-15)[cite: 11].<br>2. Guard your thought life (Phil. 4:8) and practice sexual purity[cite: 11].<br>3. Guard your eyes, phone, and inner attitudes like pride and bitterness[cite: 11].",
+                    quiz: [
+                        { q: "According to Mark 7:21-23, where does evil come from?", options: ["The devil only", "The heart", "The village", "Money"], answer: 1 },
+                        { q: "True or False: Unforgiveness and envy are not real holiness issues.", options: ["True", "False"], answer: 1 },
+                        { q: "Who made a covenant with his eyes?", options: ["Job", "Samson", "David", "Saul"], answer: 0 }
+                    ]
+                },
+                {
+                    moduleId: 5,
+                    tag: "Week 2 • Module 5",
+                    title: "Holiness of Tongue and Conduct",
+                    content: "<strong>Memory Verse:</strong> \"But let your communication be, Yea, yea; Nay, nay...\" - Matt. 5:37[cite: 12]<br><br><strong>Teaching Points:</strong><br>1. No swearing, cursing, foolish talking, or crude jokes (Eph. 5:4)[cite: 12].<br>2. Maintain absolute truthfulness; avoid gossip, slander, and backbiting[cite: 12].",
+                    quiz: [
+                        { q: "James 5:12 teaches believers to:", options: ["Swear by heaven only", "Not swear at all", "Swear in court only", "Curse enemies"], answer: 1 },
+                        { q: "True or False: 'White lies' are acceptable if they keep peace.", options: ["True", "False"], answer: 1 },
+                        { q: "Ephesians 5:4 warns against:", options: ["Singing", "Foolish talking and jesting", "Fasting", "Giving"], answer: 1 }
+                    ]
+                },
+                {
+                    moduleId: 6,
+                    tag: "Week 2 • Module 6",
+                    title: "Separation from the World",
+                    content: "<strong>Memory Verse:</strong> \"Love not the world, neither the things that are in the world.\" - 1 John 2:15[cite: 13]<br><br><strong>Teaching Points:</strong><br>1. Live distinct from the world without becoming proud or judgmental[cite: 13].<br>2. Modest dressing: neat, decent, avoiding immodest or cross-dressing attire[cite: 13].",
+                    quiz: [
+                        { q: "2 Corinthians 6:17 commands believers to:", options: ["Come out and be separate", "Leave the church", "Stop working", "Avoid all unbelievers"], answer: 0 },
+                        { q: "True or False: Separation means refusing to talk to unbelievers.", options: ["True", "False"], answer: 1 },
+                        { q: "Which verse warns against wearing clothes of the opposite sex?", options: ["Deut. 22:5", "John 3:16", "Psalm 1:1", "Acts 2:38"], answer: 0 }
+                    ]
+                },
+                {
+                    moduleId: 7,
+                    tag: "Week 3 • Module 7",
+                    title: "The Holy Worker - Character Before Gifting",
+                    content: "<strong>Memory Verse:</strong> \"If a man therefore purge himself from these...\" - 2 Tim. 2:21[cite: 14]<br><br><strong>Teaching Points:</strong><br>1. God looks for clean vessels; character matters more than gifting[cite: 14].<br>2. Holiness acts as spiritual protection against the enemy[cite: 14].",
+                    quiz: [
+                        { q: "2 Timothy 2:21 says a purged vessel is:", options: ["Famous", "Meet for the master's use", "Rich", "A pastor"], answer: 1 },
+                        { q: "True or False: A working gift proves God approves of lifestyle.", options: ["True", "False"], answer: 1 },
+                        { q: "Which judge lost his strength through compromise?", options: ["Gideon", "Samson", "Deborah", "Samuel"], answer: 1 }
+                    ]
+                },
+                {
+                    moduleId: 8,
+                    tag: "Week 3 • Module 8",
+                    title: "Holiness in Home, Money and Workplace",
+                    content: "<strong>Memory Verse:</strong> \"Marriage is honourable in all, and the bed undefiled.\" - Heb. 13:4[cite: 16]<br><br><strong>Teaching Points:</strong><br>1. Honour marriage, uphold pure courtship, and lead homes in godliness[cite: 16].<br>2. Financial and workplace integrity: honest hours, no fraud or bribery[cite: 16].",
+                    quiz: [
+                        { q: "Hebrews 13:4 teaches that marriage is:", options: ["Optional", "Honourable in all", "Only for pastors", "A contract to be broken"], answer: 1 },
+                        { q: "True or False: Taking a small bribe at work is acceptable.", options: ["True", "False"], answer: 1 },
+                        { q: "Romans 13:8 says:", options: ["Owe no man anything but to love one another", "Borrow freely", "Never give", "Lend with interest"], answer: 0 }
+                    ]
+                },
+                {
+                    moduleId: 9,
+                    tag: "Week 3 • Module 9",
+                    title: "Sustaining Holiness - Accountability and Restoration",
+                    content: "<strong>Memory Verse:</strong> \"Thy word have I hid in mine heart...\" - Psalm 119:11[cite: 17]<br><br><strong>Teaching Points:</strong><br>1. Sustain holiness via the Word, prayer, fasting, and accountability[cite: 17].<br>2. If you fall: do not hide; confess, repent, and submit to restoration[cite: 17].",
+                    quiz: [
+                        { q: "Psalm 119:11 says hiding God's Word in the heart helps us to:", options: ["Get rich", "Not sin against God", "Preach louder", "Win arguments"], answer: 1 },
+                        { q: "True or False: A worker who falls into sin should hide it.", options: ["True", "False"], answer: 1 },
+                        { q: "According to 1 John 1:9, if we confess our sins God will:", options: ["Punish us", "Forgive and cleanse us", "Ignore us", "Remove our gifts"], answer: 1 }
+                    ]
                 }
-                // Modules 3 to 9 can be added similarly or uploaded via admin panel
             ];
 
-            for (let mod of defaultModules) {
+            for (let mod of allModules) {
                 await db.collection('modules').doc(mod.moduleId.toString()).set(mod);
             }
             fetchModulesFromFirebase();
@@ -212,12 +309,21 @@
         function renderSidebar() {
             let html = '';
             modulesData.forEach(m => {
-                html += `<button onclick="loadModule(${m.moduleId})" class="w-full text-left p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold hover:bg-purple-50 transition">${m.tag}: ${m.title}</button>`;
+                const isLocked = m.moduleId > highestCompletedModule;
+                if (isLocked) {
+                    html += `<div class="w-full text-left p-3 rounded-xl bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-400 cursor-not-allowed flex items-center justify-between"><span>${m.tag}: ${m.title}</span> <i class="fa-solid fa-lock"></i></div>`;
+                } else {
+                    html += `<button onclick="loadModule(${m.moduleId})" class="w-full text-left p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold hover:bg-purple-50 transition flex items-center justify-between"><span>${m.tag}: ${m.title}</span> <i class="fa-solid fa-check text-green-600"></i></button>`;
+                }
             });
             document.getElementById('sidebarModules').innerHTML = html;
         }
 
         function loadModule(id) {
+            if (id > highestCompletedModule) {
+                alert("Please complete and pass the quiz for the previous module to unlock this one.");
+                return;
+            }
             currentModuleId = id;
             const m = modulesData.find(mod => mod.moduleId === id);
             if (!m) return;
@@ -225,7 +331,6 @@
             document.getElementById('modTitle').innerText = m.title;
             document.getElementById('modContent').innerHTML = m.content;
 
-            // Render Quiz if available
             const quizSection = document.getElementById('quizSection');
             if (m.quiz && m.quiz.length > 0) {
                 quizSection.classList.remove('hidden');
@@ -244,22 +349,37 @@
             }
         }
 
-        function submitQuiz() {
+        async function submitQuiz() {
             const m = modulesData.find(mod => mod.moduleId === currentModuleId);
             if (!m || !m.quiz) return;
             let score = 0;
             m.quiz.forEach((q, idx) => {
                 const selected = document.querySelector(`input[name="q_${idx}"]:checked`);
                 if (selected && parseInt(selected.value) === q.answer) {
-                    score += 2; // 2 marks per question
+                    score += 2; 
                 }
             });
             const total = m.quiz.length * 2;
             const percentage = (score / total) * 100;
-            const passMark = percentage >= 60;
+            const passMark = percentage >= 60; // 60% pass mark[cite: 7]
 
             const resDiv = document.getElementById('quizResult');
-            resDiv.innerHTML = `Your Score: ${score}/${total} (${percentage}%) - <span class="${passMark ? 'text-green-600' : 'text-red-600'}">${passMark ? 'PASSED 🎉' : 'FAILED - Please review the module and retake.'}</span>`;
+            if (passMark) {
+                resDiv.innerHTML = `Your Score: ${score}/${total} (${percentage}%) - <span class="text-green-600">PASSED 🎉 Next module unlocked in cloud database!</span>`;
+                
+                // Securely save progress in Firestore cloud database so refreshing cannot reset it
+                if (currentModuleId >= highestCompletedModule && currentModuleId < 9) {
+                    highestCompletedModule = currentModuleId + 1;
+                    if (auth.currentUser) {
+                        await db.collection('users').doc(auth.currentUser.uid).update({
+                            highestCompletedModule: highestCompletedModule
+                        });
+                    }
+                    renderSidebar();
+                }
+            } else {
+                resDiv.innerHTML = `Your Score: ${score}/${total} (${percentage}%) - <span class="text-red-600">FAILED - You need at least 60% to unlock the next module. Please review and retake.</span>[cite: 7]`;
+            }
         }
 
         function logout() {
