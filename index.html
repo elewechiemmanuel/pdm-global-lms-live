@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDM Global Workers LMS | Firebase Cloud Portal</title>
+    <title>PDM Global Workers LMS | Living Holiness Training</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
@@ -18,40 +18,29 @@
 
     <style>
         body { font-family: 'Inter', sans-serif; }
-        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col justify-between">
 
-    <!-- Firebase Auth Modal (Login / Register) -->
+    <!-- Auth Modal -->
     <div id="authModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200">
             <div class="bg-gradient-to-r from-purple-800 to-indigo-900 text-white p-8 text-center space-y-2">
                 <div class="w-16 h-16 bg-white/10 rounded-2xl mx-auto flex items-center justify-center text-purple-200 text-2xl mb-2">
-                    <i class="fa-solid fa-cloud"></i>
+                    <i class="fa-solid fa-book-bible"></i>
                 </div>
-                <h2 class="font-bold text-xl tracking-tight">PDM Global Workers LMS</h2>
+                <h2 class="font-bold text-xl tracking-tight">PDM Living Holiness LMS</h2>
+                <p class="text-xs text-purple-200">Founder: Pastor Helen Olabiyi</p>
             </div>
             
             <form id="authForm" onsubmit="handleAuth(event)" class="p-8 space-y-4">
-                <div id="nameFieldGroup" class="space-y-1 hidden">
-                    <label class="block text-xs font-bold text-slate-700 uppercase">Full Name</label>
-                    <input type="text" id="inputName" placeholder="Deborah Johnson" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm">
-                </div>
                 <div class="space-y-1">
                     <label class="block text-xs font-bold text-slate-700 uppercase">Email Address</label>
                     <input type="email" id="inputEmail" required placeholder="worker@pdmglobal.org" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm">
                 </div>
                 <div class="space-y-1">
                     <label class="block text-xs font-bold text-slate-700 uppercase">Password</label>
-                    <div class="relative">
-                        <input type="password" id="inputPassword" required placeholder="••••••••" class="w-full p-3 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-sm">
-                        <button type="button" onclick="togglePasswordVisibility()" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">
-                            <i id="passwordToggleIcon" class="fa-regular fa-eye"></i>
-                        </button>
-                    </div>
+                    <input type="password" id="inputPassword" required placeholder="••••••••" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm">
                 </div>
                 
                 <button type="submit" id="authSubmitBtn" class="w-full bg-purple-700 hover:bg-purple-800 text-white font-semibold py-3.5 rounded-xl transition text-sm shadow">
@@ -67,55 +56,17 @@
         </div>
     </div>
 
-    <!-- Admin Course Upload Modal -->
-    <div id="adminModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden border border-slate-200 max-h-[90vh] flex flex-col">
-            <div class="bg-purple-900 text-white px-6 py-4 flex items-center justify-between">
-                <span class="font-bold text-sm"><i class="fa-solid fa-shield-halved"></i> Admin Firebase Upload Portal</span>
-                <button onclick="closeAdminModal()" class="text-purple-200 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-            
-            <form onsubmit="handleAdminUpload(event)" class="p-6 space-y-4 overflow-y-auto text-sm flex-grow">
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Module ID (Number)</label>
-                        <input type="number" id="adminModId" required value="1" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Module Tag</label>
-                        <input type="text" id="adminModTag" required placeholder="Module 1 • Foundation" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Module Title</label>
-                    <input type="text" id="adminModTitle" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Lecture HTML Content</label>
-                    <textarea id="adminModContent" rows="6" required class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs"></textarea>
-                </div>
-                <div class="flex justify-end gap-2 pt-2">
-                    <button type="button" onclick="closeAdminModal()" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold">Cancel</button>
-                    <button type="submit" class="bg-purple-700 text-white px-5 py-2 rounded-xl text-xs font-semibold shadow">Save to Firestore</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
     <!-- Header -->
     <header class="bg-purple-900 text-white shadow-md sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 py-3 flex items-center justify-between">
             <div class="flex items-center space-x-3">
-                <div class="bg-white/10 p-2.5 rounded-xl text-purple-200"><i class="fa-solid fa-cloud text-xl"></i></div>
+                <div class="bg-white/10 p-2.5 rounded-xl text-purple-200"><i class="fa-solid fa-book-bible text-xl"></i></div>
                 <div>
-                    <h1 class="font-bold text-base">PDM Global Workers LMS</h1>
-                    <p class="text-xs text-purple-200">Tutor: Pastor Helen Olabiyi</p>
+                    <h1 class="font-bold text-base">Living Holiness Workers' Training</h1>
+                    <p class="text-xs text-purple-200">Purpose Driven Ministry (PDM) Abijo G.R.A.</p>
                 </div>
             </div>
             <div class="flex items-center space-x-3">
-                <button id="adminNavBtn" onclick="openAdminModal()" class="hidden text-xs bg-indigo-700 hover:bg-indigo-800 text-white px-3 py-1.5 rounded-lg font-semibold shadow">
-                    <i class="fa-solid fa-gear"></i> Admin Upload
-                </button>
                 <span id="navUserName" class="text-xs bg-purple-800 px-3 py-1.5 rounded-lg">Loading...</span>
                 <button onclick="logout()" class="text-xs bg-purple-950 text-purple-200 px-3 py-1.5 rounded-lg">Logout</button>
             </div>
@@ -124,25 +75,38 @@
 
     <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            <!-- Sidebar Modules -->
             <div class="space-y-4">
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-3">
-                    <h3 class="font-bold text-slate-900 text-xs uppercase tracking-wider"><i class="fa-solid fa-list-check text-purple-700"></i> Course Modules</h3>
-                    <div id="sidebarModules" class="space-y-2"></div>
+                    <h3 class="font-bold text-slate-900 text-xs uppercase tracking-wider"><i class="fa-solid fa-list-check text-purple-700"></i> Course Modules (9)</h3>
+                    <div id="sidebarModules" class="space-y-2 max-h-[70vh] overflow-y-auto pr-1"></div>
                 </div>
             </div>
 
+            <!-- Lecture & Quiz Panel -->
             <div class="lg:col-span-3 space-y-6">
-                <div id="lecturePanel" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 space-y-4">
-                    <span id="modTag" class="text-xs font-semibold text-purple-700 uppercase">Loading Module...</span>
-                    <h2 id="modTitle" class="text-2xl font-bold text-slate-900">Please Wait</h2>
-                    <div id="modContent" class="text-slate-700 leading-relaxed text-sm">Syncing with Firebase Firestore...</div>
+                <div id="lecturePanel" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 space-y-6">
+                    <div>
+                        <span id="modTag" class="text-xs font-semibold text-purple-700 uppercase">Loading Module...</span>
+                        <h2 id="modTitle" class="text-2xl font-bold text-slate-900 mt-1">Please Wait</h2>
+                    </div>
+                    <div id="modContent" class="text-slate-700 leading-relaxed text-sm space-y-4">Syncing with Firebase Firestore...</div>
+                    
+                    <!-- Quiz Section -->
+                    <div id="quizSection" class="border-t border-slate-200 pt-6 mt-6 hidden">
+                        <h3 class="font-bold text-lg text-slate-900 mb-4"><i class="fa-solid fa-pen-to-square text-purple-700"></i> Module Test (10 Marks)</h3>
+                        <div id="quizContainer" class="space-y-6"></div>
+                        <button onclick="submitQuiz()" class="mt-6 bg-purple-700 hover:bg-purple-800 text-white font-semibold px-6 py-3 rounded-xl text-sm shadow transition">
+                            Submit Test
+                        </button>
+                        <div id="quizResult" class="mt-4 font-bold text-sm"></div>
+                    </div>
                 </div>
             </div>
         </div>
     </main>
 
     <script>
-        // Updated with your correct active Firebase Project credentials
         const firebaseConfig = {
             apiKey: "AIzaSyA9oVYvQPO9EGbcxWNB2-kVRc3ftkBtI2Y",
             authDomain: "pdmglobalworkerslms-9b370.firebaseapp.com",
@@ -153,23 +117,18 @@
             measurementId: "G-72TS87YV9Q"
         };
 
-        // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
 
         let isRegisterMode = false;
         let modulesData = [];
+        let currentModuleId = 1;
 
-        // Track Auth State changes
         auth.onAuthStateChanged(async (user) => {
             if (user) {
                 document.getElementById('authModal').classList.add('hidden');
                 document.getElementById('navUserName').innerText = user.email;
-                
-                if (user.email.includes('admin') || user.email === 'pastorhelen@pdmglobal.org') {
-                    document.getElementById('adminNavBtn').classList.remove('hidden');
-                }
                 await fetchModulesFromFirebase();
             } else {
                 document.getElementById('authModal').classList.remove('hidden');
@@ -178,28 +137,14 @@
 
         function toggleAuthMode() {
             isRegisterMode = !isRegisterMode;
-            document.getElementById('nameFieldGroup').classList.toggle('hidden', !isRegisterMode);
             document.getElementById('authSubmitBtn').innerText = isRegisterMode ? 'Register Account' : 'Sign In to Portal';
             document.getElementById('authToggleText').innerText = isRegisterMode ? 'Already have an account? Sign in' : 'Need an account? Register here';
-        }
-
-        function togglePasswordVisibility() {
-            const passwordInput = document.getElementById('inputPassword');
-            const icon = document.getElementById('passwordToggleIcon');
-            if (passwordInput.type === 'password') {
-                passwordInput.type = 'text';
-                icon.className = 'fa-regular fa-eye-slash';
-            } else {
-                passwordInput.type = 'password';
-                icon.className = 'fa-regular fa-eye';
-            }
         }
 
         async function handleAuth(event) {
             event.preventDefault();
             const email = document.getElementById('inputEmail').value;
             const password = document.getElementById('inputPassword').value;
-
             try {
                 if (isRegisterMode) {
                     await auth.createUserWithEmailAndPassword(email, password);
@@ -221,60 +166,100 @@
                 });
 
                 if (modulesData.length === 0) {
-                    const defaultMod = {
-                        moduleId: 1,
-                        tag: "Module 1 • Foundation",
-                        title: "Principles of Effective Global Service",
-                        content: "<h3>The Heart of a Kingdom Worker</h3><p>Service in the vineyard is a sacred privilege...</p>"
-                    };
-                    await db.collection('modules').doc('1').set(defaultMod);
-                    modulesData = [defaultMod];
+                    await seedDefaultModules();
+                } else {
+                    renderSidebar();
+                    loadModule(modulesData[0].moduleId);
                 }
-
-                renderSidebar();
-                loadModule(modulesData[0].moduleId);
             } catch (err) {
                 console.error("Error fetching modules:", err);
             }
         }
 
+        async function seedDefaultModules() {
+            const defaultModules = [
+                {
+                    moduleId: 1,
+                    tag: "Week 1 • Module 1",
+                    title: "The Call to Holiness",
+                    content: "<strong>Memory Verse:</strong> \"Because it is written, Be ye holy; for I am holy.\" - 1 Peter 1:16<br><br><strong>Teaching Points:</strong><br>1. Holiness starts with who God is. God is holy (Isaiah 6:3). Holiness means separated from sin and set apart for God.<br>2. Holiness is commanded for every believer (1 Peter 1:15-16). It is not reserved for pastors.<br>3. Holiness is required for heaven (Hebrews 12:14).<br>4. Holiness has two sides: separation from sin and dedication to God.<br>5. Holiness flows from love for God, not legalism (John 14:15).",
+                    quiz: [
+                        { q: "Holiness simply means:", options: ["Never smiling", "Being separated from sin and set apart for God", "Wearing white", "Attending every service"], answer: 1 },
+                        { q: "True or False: Holiness is only required of pastors and ministers.", options: ["True", "False"], answer: 1 },
+                        { q: "Which verse says 'without holiness no man shall see the Lord'?", options: ["John 3:16", "Hebrews 12:14", "Psalm 23:1", "Genesis 1:1"], answer: 1 }
+                    ]
+                },
+                {
+                    moduleId: 2,
+                    tag: "Week 1 • Module 2",
+                    title: "Repentance, New Birth and Restitution",
+                    content: "<strong>Memory Verse:</strong> \"He that covereth his sins shall not prosper...\" - Proverbs 28:13<br><br><strong>Teaching Points:</strong><br>1. Holiness begins with the new birth (John 3:3-5).<br>2. Repentance is godly sorrow plus a decision to stop sinning.<br>3. Justification: God cleanses and declares us righteous (Romans 5:1).<br>4. Restitution is evidence of true repentance: returning stolen items, paying debts, and clearing your conscience.",
+                    quiz: [
+                        { q: "Repentance is:", options: ["Feeling sorry only", "Godly sorrow with a decision to abstain from sin", "Paying money to the church", "Joining a department"], answer: 1 },
+                        { q: "True or False: Restitution is a sign of true repentance.", options: ["True", "False"], answer: 0 },
+                        { q: "Which man in Luke 19 promised to restore fourfold?", options: ["Peter", "Nicodemus", "Zacchaeus", "Judas"], answer: 2 }
+                    ]
+                }
+                // Modules 3 to 9 can be added similarly or uploaded via admin panel
+            ];
+
+            for (let mod of defaultModules) {
+                await db.collection('modules').doc(mod.moduleId.toString()).set(mod);
+            }
+            fetchModulesFromFirebase();
+        }
+
         function renderSidebar() {
             let html = '';
             modulesData.forEach(m => {
-                html += `<button onclick="loadModule(${m.moduleId})" class="w-full text-left p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold hover:bg-purple-50">${m.tag}</button>`;
+                html += `<button onclick="loadModule(${m.moduleId})" class="w-full text-left p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold hover:bg-purple-50 transition">${m.tag}: ${m.title}</button>`;
             });
             document.getElementById('sidebarModules').innerHTML = html;
         }
 
         function loadModule(id) {
+            currentModuleId = id;
             const m = modulesData.find(mod => mod.moduleId === id);
             if (!m) return;
             document.getElementById('modTag').innerText = m.tag;
             document.getElementById('modTitle').innerText = m.title;
             document.getElementById('modContent').innerHTML = m.content;
+
+            // Render Quiz if available
+            const quizSection = document.getElementById('quizSection');
+            if (m.quiz && m.quiz.length > 0) {
+                quizSection.classList.remove('hidden');
+                let qHtml = '';
+                m.quiz.forEach((q, idx) => {
+                    qHtml += `<div class="space-y-2"><p class="font-semibold text-slate-800 text-sm">${idx + 1}. ${q.q}</p><div class="space-y-1 pl-2">`;
+                    q.options.forEach((opt, optIdx) => {
+                        qHtml += `<label class="block text-xs text-slate-700"><input type="radio" name="q_${idx}" value="${optIdx}" class="mr-2"> ${opt}</label>`;
+                    });
+                    qHtml += `</div></div>`;
+                });
+                document.getElementById('quizContainer').innerHTML = qHtml;
+                document.getElementById('quizResult').innerHTML = '';
+            } else {
+                quizSection.classList.add('hidden');
+            }
         }
 
-        function openAdminModal() { document.getElementById('adminModal').classList.remove('hidden'); }
-        function closeAdminModal() { document.getElementById('adminModal').classList.add('hidden'); }
+        function submitQuiz() {
+            const m = modulesData.find(mod => mod.moduleId === currentModuleId);
+            if (!m || !m.quiz) return;
+            let score = 0;
+            m.quiz.forEach((q, idx) => {
+                const selected = document.querySelector(`input[name="q_${idx}"]:checked`);
+                if (selected && parseInt(selected.value) === q.answer) {
+                    score += 2; // 2 marks per question
+                }
+            });
+            const total = m.quiz.length * 2;
+            const percentage = (score / total) * 100;
+            const passMark = percentage >= 60;
 
-        async function handleAdminUpload(event) {
-            event.preventDefault();
-            const moduleId = parseInt(document.getElementById('adminModId').value);
-            const payload = {
-                moduleId: moduleId,
-                tag: document.getElementById('adminModTag').value,
-                title: document.getElementById('adminModTitle').value,
-                content: document.getElementById('adminModContent').value
-            };
-
-            try {
-                await db.collection('modules').doc(moduleId.toString()).set(payload, { merge: true });
-                alert("Module uploaded successfully to Firebase Firestore!");
-                closeAdminModal();
-                fetchModulesFromFirebase();
-            } catch (err) {
-                alert("Upload failed: " + err.message);
-            }
+            const resDiv = document.getElementById('quizResult');
+            resDiv.innerHTML = `Your Score: ${score}/${total} (${percentage}%) - <span class="${passMark ? 'text-green-600' : 'text-red-600'}">${passMark ? 'PASSED 🎉' : 'FAILED - Please review the module and retake.'}</span>`;
         }
 
         function logout() {
