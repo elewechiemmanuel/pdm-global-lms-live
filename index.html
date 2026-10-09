@@ -66,6 +66,41 @@
         </div>
     </div>
 
+    <!-- Admin Course Upload Modal -->
+    <div id="adminModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden border border-slate-200 max-h-[90vh] flex flex-col">
+            <div class="bg-purple-900 text-white px-6 py-4 flex items-center justify-between">
+                <span class="font-bold text-sm"><i class="fa-solid fa-shield-halved"></i> Admin Course Upload Portal</span>
+                <button onclick="closeAdminModal()" class="text-purple-200 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            
+            <form onsubmit="handleAdminUpload(event)" class="p-6 space-y-4 overflow-y-auto text-sm flex-grow">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Module ID (Number)</label>
+                        <input type="number" id="adminModId" required value="1" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Module Tag</label>
+                        <input type="text" id="adminModTag" required placeholder="Week 1 • Module 1" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Module Title</label>
+                    <input type="text" id="adminModTitle" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Lecture HTML Content</label>
+                    <textarea id="adminModContent" rows="6" required class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs" placeholder="Enter HTML content or text..."></textarea>
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeAdminModal()" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold">Cancel</button>
+                    <button type="submit" class="bg-purple-700 text-white px-5 py-2 rounded-xl text-xs font-semibold shadow">Save to Firestore</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Header -->
     <header class="bg-purple-900 text-white shadow-md sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 py-3 flex items-center justify-between">
@@ -77,6 +112,9 @@
                 </div>
             </div>
             <div class="flex items-center space-x-3">
+                <button id="adminNavBtn" onclick="openAdminModal()" class="hidden text-xs bg-indigo-700 hover:bg-indigo-800 text-white px-3 py-1.5 rounded-lg font-semibold shadow">
+                    <i class="fa-solid fa-gear"></i> Admin Upload
+                </button>
                 <span id="navUserName" class="text-xs bg-purple-800 px-3 py-1.5 rounded-lg">Loading...</span>
                 <button onclick="logout()" class="text-xs bg-purple-950 text-purple-200 px-3 py-1.5 rounded-lg">Logout</button>
             </div>
@@ -117,7 +155,7 @@
     </main>
 
     <script>
-        // Disable keyboard shortcuts for copying (Ctrl+C, Ctrl+A, Ctrl+U, etc.)
+        // Disable keyboard shortcuts for copying
         document.addEventListener('keydown', function(e) {
             if (e.ctrlKey && (e.key === 'c' || e.key === 'a' || e.key === 'u' || e.key === 's' || e.key === 'p')) {
                 e.preventDefault();
@@ -149,6 +187,13 @@
                 document.getElementById('authModal').classList.add('hidden');
                 document.getElementById('navUserName').innerText = user.email;
                 
+                // Show Admin Upload button if email matches admin criteria
+                if (user.email.includes('admin') || user.email === 'pastorhelen@pdmglobal.org') {
+                    document.getElementById('adminNavBtn').classList.remove('hidden');
+                } else {
+                    document.getElementById('adminNavBtn').classList.add('hidden');
+                }
+
                 const userDocRef = db.collection('users').doc(user.uid);
                 const userDoc = await userDocRef.get();
                 
@@ -374,6 +419,29 @@
                 document.getElementById('quizResult').innerHTML = '';
             } else {
                 quizSection.classList.add('hidden');
+            }
+        }
+
+        function openAdminModal() { document.getElementById('adminModal').classList.remove('hidden'); }
+        function closeAdminModal() { document.getElementById('adminModal').classList.add('hidden'); }
+
+        async function handleAdminUpload(event) {
+            event.preventDefault();
+            const moduleId = parseInt(document.getElementById('adminModId').value);
+            const payload = {
+                moduleId: moduleId,
+                tag: document.getElementById('adminModTag').value,
+                title: document.getElementById('adminModTitle').value,
+                content: document.getElementById('adminModContent').value
+            };
+
+            try {
+                await db.collection('modules').doc(moduleId.toString()).set(payload, { merge: true });
+                alert("Module uploaded successfully to Firebase Firestore!");
+                closeAdminModal();
+                fetchModulesFromFirebase();
+            } catch (err) {
+                alert("Upload failed: " + err.message);
             }
         }
 
