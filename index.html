@@ -18,9 +18,16 @@
 
     <style>
         body { font-family: 'Inter', sans-serif; }
+        /* Prevent text selection, copying, and highlighting */
+        .no-copy {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col justify-between">
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col justify-between no-copy" oncontextmenu="return false;">
 
     <!-- Auth Modal -->
     <div id="authModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
@@ -110,6 +117,14 @@
     </main>
 
     <script>
+        // Disable keyboard shortcuts for copying (Ctrl+C, Ctrl+A, Ctrl+U, etc.)
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && (e.key === 'c' || e.key === 'a' || e.key === 'u' || e.key === 's' || e.key === 'p')) {
+                e.preventDefault();
+                alert("Copying course content is restricted.");
+            }
+        });
+
         const firebaseConfig = {
             apiKey: "AIzaSyA9oVYvQPO9EGbcxWNB2-kVRc3ftkBtI2Y",
             authDomain: "pdmglobalworkerslms-9b370.firebaseapp.com",
@@ -200,21 +215,22 @@
                     tag: "Week 1 • Module 1",
                     title: "The Call to Holiness",
                     content: `
-                        <div class="bg-purple-50 border border-purple-200 p-4 rounded-xl mb-6">
-                            <h3 class="font-bold text-purple-900 mb-2"><i class="fa-solid fa-circle-info"></i> Course Overview & Guidelines</h3>
-                            <p class="text-xs text-slate-700 mb-2">This course trains every PDM worker to live a holy life at home, at work and in service, in 9 modules over 3 weeks. Grounded entirely in Scripture[cite: 3].</p>
-                            <p class="text-xs text-slate-700 mb-2"><strong>Who it is for:</strong> Ushers, choir, media, children's teachers, protocol, follow-up, prayer team, sanctuary keepers, department heads, and anyone being considered for service[cite: 3].</p>
-                            <p class="text-xs text-slate-700"><strong>Grading & Pass Mark:</strong> Each test is 10 marks (5 questions $\times$ 2 marks). Total = 90 marks[cite: 3]. Pass mark is <strong>60% (54/90)</strong>[cite: 3].</p>
+                        <div class="bg-purple-50 border border-purple-200 p-5 rounded-2xl mb-6 shadow-sm">
+                            <h3 class="font-bold text-purple-900 text-base mb-2"><i class="fa-solid fa-book-open text-purple-700 mr-2"></i> Course Overview & Guidelines</h3>
+                            <p class="text-xs text-slate-700 mb-2">This course trains every PDM worker to live a holy life at home, at work and in service, in 9 modules over 3 weeks. Every teaching is grounded in Scripture[cite: 3].</p>
+                            <p class="text-xs text-slate-700 mb-2"><strong>Who it is for:</strong> Ushers, choir, media, children's teachers, protocol, follow-up, prayer team, sanctuary keepers, department heads and anyone being considered for service[cite: 3].</p>
+                            <p class="text-xs text-slate-700 mb-2"><strong>Course Goal:</strong> At the end, each worker can explain what holiness is, show where it applies in daily life, and sign the PDM Worker's Holiness Covenant[cite: 3].</p>
+                            <p class="text-xs text-slate-700"><strong>Grading:</strong> Each module test = 10 marks (5 questions × 2 marks). Total = 90 marks[cite: 3]. Pass mark: <strong>60% (54/90)</strong>[cite: 3]. Workers below 60% repeat the modules they failed before the covenant service[cite: 3].</p>
                         </div>
                         <hr class="my-4 border-slate-200">
-                        <strong>Memory Verse:</strong> \"Because it is written, Be ye holy; for I am holy.\" - 1 Peter 1:16[cite: 8]<br><br>
-                        <strong>Aim:</strong> The worker understands that holiness is God's nature and God's command, not an option for \"super-Christians\"[cite: 4].<br><br>
+                        <strong>Memory Verse:</strong> "Because it is written, Be ye holy; for I am holy." - 1 Peter 1:16[cite: 4]<br><br>
+                        <strong>Aim:</strong> The worker understands that holiness is God's nature and God's command, not an option for "super-Christians"[cite: 4].<br><br>
                         <strong>Teaching Points:</strong><br>
-                        1. Holiness starts with who God is. God is holy (Isaiah 6:3; Revelation 4:8). Holiness means separated from sin and set apart for God[cite: 8].<br>
-                        2. Holiness is commanded for every believer (1 Peter 1:15-16; 1 Thess. 4:7). It is not reserved for pastors[cite: 8].<br>
-                        3. Holiness is required for heaven (Hebrews 12:14; Revelation 21:27). Making heaven requires holiness as a lifestyle[cite: 8].<br>
-                        4. Holiness has two sides: separation from sin (2 Cor. 6:17) and dedication to God (Romans 12:1-2)[cite: 8].<br>
-                        5. Holiness is not legalism. Rules without a changed heart produce pride (Matthew 23:25-28). Holiness flows from love for God (John 14:15)[cite: 8].
+                        1. Holiness starts with who God is. God is holy (Isaiah 6:3; Revelation 4:8). Holiness means separated from sin and set apart for God[cite: 4].<br>
+                        2. Holiness is commanded for every believer (1 Peter 1:15-16; 1 Thess. 4:7). It is not reserved for pastors[cite: 4].<br>
+                        3. Holiness is required for heaven (Hebrews 12:14; Revelation 21:27). Making heaven requires holiness as a lifestyle[cite: 4].<br>
+                        4. Holiness has two sides: separation from sin (2 Cor. 6:17) and dedication to God (Romans 12:1-2)[cite: 4].<br>
+                        5. Holiness is not legalism. Rules without a changed heart produce pride (Matthew 23:25-28). Holiness flows from love for God (John 14:15)[cite: 4].
                     `,
                     quiz: [
                         { q: "Holiness simply means:", options: ["Never smiling", "Being separated from sin and set apart for God", "Wearing white", "Attending every service"], answer: 1 },
@@ -373,7 +389,7 @@
             });
             const total = m.quiz.length * 2;
             const percentage = (score / total) * 100;
-            const passMark = percentage >= 60;
+            const passMark = percentage >= 60; // 60% pass mark[cite: 3]
 
             const resDiv = document.getElementById('quizResult');
             if (passMark) {
@@ -389,7 +405,7 @@
                     renderSidebar();
                 }
             } else {
-                resDiv.innerHTML = `Your Score: ${score}/${total} (${percentage}%) - <span class="text-red-600">FAILED - You need at least 60% to unlock the next module. Please review and retake.</span>`;
+                resDiv.innerHTML = `Your Score: ${score}/${total} (${percentage}%) - <span class="text-red-600">FAILED - You need at least 60% to unlock the next module. Please review and retake.</span>[cite: 3]`;
             }
         }
 
