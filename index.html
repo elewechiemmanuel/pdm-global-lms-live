@@ -121,7 +121,20 @@
         </div>
     </header>
 
-    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        
+        <!-- Live Worker Progress Status Banner -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="space-y-1 text-center sm:text-left">
+                <span class="text-xs font-bold text-purple-700 uppercase tracking-wider"><i class="fa-solid fa-chart-line"></i> Training Progress</span>
+                <h2 id="workerProgressTitle" class="text-lg font-bold text-slate-900">Loading your progress...</h2>
+                <p id="workerProgressSub" class="text-xs text-slate-500">Complete tests with 60% or higher to advance.</p>
+            </div>
+            <div class="w-full sm:w-64 bg-slate-100 rounded-full h-4 overflow-hidden border border-slate-200">
+                <div id="progressBar" class="bg-purple-600 h-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+        </div>
+
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
             <!-- Sidebar Modules -->
             <div class="space-y-4">
@@ -181,13 +194,13 @@
         let modulesData = [];
         let currentModuleId = 1;
         let highestCompletedModule = 1;
+        let workerFullName = "";
 
         auth.onAuthStateChanged(async (user) => {
             if (user) {
                 document.getElementById('authModal').classList.add('hidden');
                 document.getElementById('navUserName').innerText = user.email;
                 
-                // Show Admin Upload button if email matches admin criteria
                 if (user.email.includes('admin') || user.email === 'pastorhelen@pdmglobal.org') {
                     document.getElementById('adminNavBtn').classList.remove('hidden');
                 } else {
@@ -198,12 +211,22 @@
                 const userDoc = await userDocRef.get();
                 
                 if (userDoc.exists) {
-                    highestCompletedModule = userDoc.data().highestCompletedModule || 1;
+                    const data = userDoc.data();
+                    highestCompletedModule = data.highestCompletedModule || 1;
+                    workerFullName = data.fullName || user.email;
                 } else {
-                    await userDocRef.set({ email: user.email, highestCompletedModule: 1 });
+                    // Default registration fallback record
+                    await userDocRef.set({ 
+                        email: user.email, 
+                        fullName: user.email,
+                        highestCompletedModule: 1,
+                        registeredAt: firebase.firestore.FieldValue.serverTimestamp() 
+                    });
                     highestCompletedModule = 1;
+                    workerFullName = user.email;
                 }
 
+                updateProgressUI();
                 await fetchModulesFromFirebase();
             } else {
                 document.getElementById('authModal').classList.remove('hidden');
@@ -221,17 +244,35 @@
             event.preventDefault();
             const email = document.getElementById('inputEmail').value;
             const password = document.getElementById('inputPassword').value;
+            const fullName = document.getElementById('inputName').value || email;
+
             try {
                 if (isRegisterMode) {
                     const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-                    await db.collection('users').doc(userCredential.user.uid).set({ email: email, highestCompletedModule: 1 });
-                    alert("Account created successfully!");
+                    // Save complete registration details in Firestore users collection
+                    await db.collection('users').doc(userCredential.user.uid).set({ 
+                        email: email, 
+                        fullName: fullName,
+                        highestCompletedModule: 1,
+                        registeredAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    alert("Account registered and saved successfully!");
                 } else {
                     await auth.signInWithEmailAndPassword(email, password);
                 }
             } catch (err) {
                 alert("Authentication Error: " + err.message);
             }
+        }
+
+        function updateProgressUI() {
+            // Calculate progress percentage out of 9 modules
+            const completedCount = highestCompletedModule - 1;
+            const percentage = Math.round((completedCount / 9) * 100);
+            
+            document.getElementById('workerProgressTitle').innerText = `${workerFullName} — Level ${highestCompletedModule} of 9 Unlocked`;
+            document.getElementById('workerProgressSub').innerText = `Course Completion: ${percentage}% (${completedCount}/9 modules passed)`;
+            document.getElementById('progressBar').style.width = `${percentage}%`;
         }
 
         async function fetchModulesFromFirebase() {
@@ -262,20 +303,20 @@
                     content: `
                         <div class="bg-purple-50 border border-purple-200 p-5 rounded-2xl mb-6 shadow-sm">
                             <h3 class="font-bold text-purple-900 text-base mb-2"><i class="fa-solid fa-book-open text-purple-700 mr-2"></i> Course Overview & Guidelines</h3>
-                            <p class="text-xs text-slate-700 mb-2">This course trains every PDM worker to live a holy life at home, at work and in service, in 9 modules over 3 weeks. Every teaching is grounded in Scripture[cite: 3].</p>
-                            <p class="text-xs text-slate-700 mb-2"><strong>Who it is for:</strong> Ushers, choir, media, children's teachers, protocol, follow-up, prayer team, sanctuary keepers, department heads and anyone being considered for service[cite: 3].</p>
-                            <p class="text-xs text-slate-700 mb-2"><strong>Course Goal:</strong> At the end, each worker can explain what holiness is, show where it applies in daily life, and sign the PDM Worker's Holiness Covenant[cite: 3].</p>
-                            <p class="text-xs text-slate-700"><strong>Grading:</strong> Each module test = 10 marks (5 questions × 2 marks). Total = 90 marks[cite: 3]. Pass mark: <strong>60% (54/90)</strong>[cite: 3]. Workers below 60% repeat the modules they failed before the covenant service[cite: 3].</p>
+                            <p class="text-xs text-slate-700 mb-2">This course trains every PDM worker to live a holy life at home, at work and in service, in 9 modules over 3 weeks. Every teaching is grounded in Scripture.</p>
+                            <p class="text-xs text-slate-700 mb-2"><strong>Who it is for:</strong> Ushers, choir, media, children's teachers, protocol, follow-up, prayer team, sanctuary keepers, department heads and anyone being considered for service.</p>
+                            <p class="text-xs text-slate-700 mb-2"><strong>Course Goal:</strong> At the end, each worker can explain what holiness is, show where it applies in daily life, and sign the PDM Worker's Holiness Covenant.</p>
+                            <p class="text-xs text-slate-700"><strong>Grading:</strong> Each module test = 10 marks (5 questions × 2 marks). Total = 90 marks. Pass mark: <strong>60% (54/90)</strong>. Workers below 60% repeat the modules they failed before the covenant service.</p>
                         </div>
                         <hr class="my-4 border-slate-200">
-                        <strong>Memory Verse:</strong> "Because it is written, Be ye holy; for I am holy." - 1 Peter 1:16[cite: 4]<br><br>
-                        <strong>Aim:</strong> The worker understands that holiness is God's nature and God's command, not an option for "super-Christians"[cite: 4].<br><br>
+                        <strong>Memory Verse:</strong> "Because it is written, Be ye holy; for I am holy." - 1 Peter 1:16<br><br>
+                        <strong>Aim:</strong> The worker understands that holiness is God's nature and God's command, not an option for "super-Christians".<br><br>
                         <strong>Teaching Points:</strong><br>
-                        1. Holiness starts with who God is. God is holy (Isaiah 6:3; Revelation 4:8). Holiness means separated from sin and set apart for God[cite: 4].<br>
-                        2. Holiness is commanded for every believer (1 Peter 1:15-16; 1 Thess. 4:7). It is not reserved for pastors[cite: 4].<br>
-                        3. Holiness is required for heaven (Hebrews 12:14; Revelation 21:27). Making heaven requires holiness as a lifestyle[cite: 4].<br>
-                        4. Holiness has two sides: separation from sin (2 Cor. 6:17) and dedication to God (Romans 12:1-2)[cite: 4].<br>
-                        5. Holiness is not legalism. Rules without a changed heart produce pride (Matthew 23:25-28). Holiness flows from love for God (John 14:15)[cite: 4].
+                        1. Holiness starts with who God is. God is holy (Isaiah 6:3; Revelation 4:8). Holiness means separated from sin and set apart for God.<br>
+                        2. Holiness is commanded for every believer (1 Peter 1:15-16; 1 Thess. 4:7). It is not reserved for pastors.<br>
+                        3. Holiness is required for heaven (Hebrews 12:14; Revelation 21:27). Making heaven requires holiness as a lifestyle.<br>
+                        4. Holiness has two sides: separation from sin (2 Cor. 6:17) and dedication to God (Romans 12:1-2).<br>
+                        5. Holiness is not legalism. Rules without a changed heart produce pride (Matthew 23:25-28). Holiness flows from love for God (John 14:15).
                     `,
                     quiz: [
                         { q: "Holiness simply means:", options: ["Never smiling", "Being separated from sin and set apart for God", "Wearing white", "Attending every service"], answer: 1 },
@@ -287,7 +328,7 @@
                     moduleId: 2,
                     tag: "Week 1 • Module 2",
                     title: "Repentance, New Birth and Restitution",
-                    content: "<strong>Memory Verse:</strong> \"He that covereth his sins shall not prosper but whoso confesseth and forsaketh them shall have mercy.\" - Proverbs 28:13[cite: 5]<br><br><strong>Teaching Points:</strong><br>1. Holiness begins with the new birth (John 3:3-5; 2 Cor. 5:17)[cite: 5].<br>2. Repentance is godly sorrow plus a decision to stop (2 Cor. 7:10; Acts 3:19)[cite: 5].<br>3. Justification: God cleanses and declares us righteous as though we never sinned (Romans 5:1; Titus 3:5)[cite: 5].<br>4. Restitution is evidence of true repentance: returning stolen items and making past wrongs right[cite: 5].",
+                    content: "<strong>Memory Verse:</strong> \"He that covereth his sins shall not prosper but whoso confesseth and forsaketh them shall have mercy.\" - Proverbs 28:13<br><br><strong>Teaching Points:</strong><br>1. Holiness begins with the new birth (John 3:3-5; 2 Cor. 5:17).<br>2. Repentance is godly sorrow plus a decision to stop (2 Cor. 7:10; Acts 3:19).<br>3. Justification: God cleanses and declares us righteous as though we never sinned (Romans 5:1; Titus 3:5).<br>4. Restitution is evidence of true repentance: returning stolen items and making past wrongs right.",
                     quiz: [
                         { q: "Repentance is:", options: ["Feeling sorry only", "Godly sorrow with a decision to abstain from sin", "Paying money to the church", "Joining a department"], answer: 1 },
                         { q: "True or False: Restitution is a sign of true repentance.", options: ["True", "False"], answer: 0 },
@@ -298,7 +339,7 @@
                     moduleId: 3,
                     tag: "Week 1 • Module 3",
                     title: "Sanctification - God's Work in the Heart",
-                    content: "<strong>Memory Verse:</strong> \"And the very God of peace sanctify you wholly...\" - 1 Thess. 5:23-24[cite: 6]<br><br><strong>Teaching Points:</strong><br>1. Sanctification is God's will for you (1 Thess. 4:3). It is the work of the Holy Spirit (2 Thess. 2:13)[cite: 6].<br>2. A work of grace received by faith in the blood of Jesus (Hebrews 13:12; 1 John 1:7)[cite: 6].<br>3. God's part: the blood cleanses; our part: consecration, yielding daily, and pursuing holiness (2 Cor. 7:1)[cite: 6].",
+                    content: "<strong>Memory Verse:</strong> \"And the very God of peace sanctify you wholly...\" - 1 Thess. 5:23-24<br><br><strong>Teaching Points:</strong><br>1. Sanctification is God's will for you (1 Thess. 4:3). It is the work of the Holy Spirit (2 Thess. 2:13).<br>2. A work of grace received by faith in the blood of Jesus (Hebrews 13:12; 1 John 1:7).<br>3. God's part: the blood cleanses; our part: consecration, yielding daily, and pursuing holiness (2 Cor. 7:1).",
                     quiz: [
                         { q: "According to 1 Thess. 4:3, what is the will of God for believers?", options: ["Wealth", "Sanctification", "Fame", "Marriage"], answer: 1 },
                         { q: "True or False: Sanctification is received by faith in the blood of Jesus.", options: ["True", "False"], answer: 0 },
@@ -309,7 +350,7 @@
                     moduleId: 4,
                     tag: "Week 2 • Module 4",
                     title: "Purity of Heart and Mind",
-                    content: "<strong>Memory Verse:</strong> \"Blessed are the pure in heart: for they shall see God.\" - Matthew 5:8[cite: 7]<br><br><strong>Teaching Points:</strong><br>1. Sin starts in the heart (Mark 7:21-23; James 1:14-15)[cite: 7].<br>2. Guard your thought life (Philippians 4:8) and practice sexual purity (1 Cor. 6:18-20)[cite: 7].<br>3. Guard your eyes, phone, and inner attitudes like pride, envy, and bitterness[cite: 7].",
+                    content: "<strong>Memory Verse:</strong> \"Blessed are the pure in heart: for they shall see God.\" - Matthew 5:8<br><br><strong>Teaching Points:</strong><br>1. Sin starts in the heart (Mark 7:21-23; James 1:14-15).<br>2. Guard your thought life (Philippians 4:8) and practice sexual purity (1 Cor. 6:18-20).<br>3. Guard your eyes, phone, and inner attitudes like pride, envy, and bitterness.",
                     quiz: [
                         { q: "According to Mark 7:21-23, where does evil come from?", options: ["The devil only", "The heart", "The village", "Money"], answer: 1 },
                         { q: "True or False: Unforgiveness and envy are not real holiness issues.", options: ["True", "False"], answer: 1 },
@@ -320,7 +361,7 @@
                     moduleId: 5,
                     tag: "Week 2 • Module 5",
                     title: "Holiness of Tongue and Conduct",
-                    content: "<strong>Memory Verse:</strong> \"But let your communication be, Yea, yea; Nay, nay...\" - Matt. 5:37[cite: 8]<br><br><strong>Teaching Points:</strong><br>1. No swearing, cursing, foolish talking, or crude jokes (James 5:12; Eph. 5:4)[cite: 8].<br>2. Maintain absolute truthfulness; avoid gossip, slander, and backbiting (Eph. 4:25)[cite: 8].",
+                    content: "<strong>Memory Verse:</strong> \"But let your communication be, Yea, yea; Nay, nay...\" - Matt. 5:37<br><br><strong>Teaching Points:</strong><br>1. No swearing, cursing, foolish talking, or crude jokes (James 5:12; Eph. 5:4).<br>2. Maintain absolute truthfulness; avoid gossip, slander, and backbiting (Eph. 4:25).",
                     quiz: [
                         { q: "James 5:12 teaches believers to:", options: ["Swear by heaven only", "Not swear at all", "Swear in court only", "Curse enemies"], answer: 1 },
                         { q: "True or False: 'White lies' are acceptable if they keep peace.", options: ["True", "False"], answer: 1 },
@@ -331,7 +372,7 @@
                     moduleId: 6,
                     tag: "Week 2 • Module 6",
                     title: "Separation from the World",
-                    content: "<strong>Memory Verse:</strong> \"Love not the world, neither the things that are in the world.\" - 1 John 2:15[cite: 9]<br><br><strong>Teaching Points:</strong><br>1. Live distinct from the world without becoming proud or judgmental (2 Cor. 6:14-18)[cite: 9].<br>2. Modest dressing: neat, decent, avoiding immodest or cross-dressing attire (1 Tim. 2:9-10)[cite: 9].",
+                    content: "<strong>Memory Verse:</strong> \"Love not the world, neither the things that are in the world.\" - 1 John 2:15<br><br><strong>Teaching Points:</strong><br>1. Live distinct from the world without becoming proud or judgmental (2 Cor. 6:14-18).<br>2. Modest dressing: neat, decent, avoiding immodest or cross-dressing attire (1 Tim. 2:9-10).",
                     quiz: [
                         { q: "2 Corinthians 6:17 commands believers to:", options: ["Come out and be separate", "Leave the church", "Stop working", "Avoid all unbelievers"], answer: 0 },
                         { q: "True or False: Separation means refusing to talk to unbelievers.", options: ["True", "False"], answer: 1 },
@@ -342,7 +383,7 @@
                     moduleId: 7,
                     tag: "Week 3 • Module 7",
                     title: "The Holy Worker - Character Before Gifting",
-                    content: "<strong>Memory Verse:</strong> \"If a man therefore purge himself from these...\" - 2 Tim. 2:21[cite: 10]<br><br><strong>Teaching Points:</strong><br>1. God looks for clean vessels; character matters more than gifting (Judges 16:20)[cite: 10].<br>2. Holiness acts as spiritual protection against the enemy (Ephesians 4:27)[cite: 10].",
+                    content: "<strong>Memory Verse:</strong> \"If a man therefore purge himself from these...\" - 2 Tim. 2:21<br><br><strong>Teaching Points:</strong><br>1. God looks for clean vessels; character matters more than gifting (Judges 16:20).<br>2. Holiness acts as spiritual protection against the enemy (Ephesians 4:27).",
                     quiz: [
                         { q: "2 Timothy 2:21 says a purged vessel is:", options: ["Famous", "Meet for the master's use", "Rich", "A pastor"], answer: 1 },
                         { q: "True or False: A working gift proves God approves of lifestyle.", options: ["True", "False"], answer: 1 },
@@ -353,7 +394,7 @@
                     moduleId: 8,
                     tag: "Week 3 • Module 8",
                     title: "Holiness in Home, Money and Workplace",
-                    content: "<strong>Memory Verse:</strong> \"Marriage is honourable in all, and the bed undefiled.\" - Heb. 13:4[cite: 12]<br><br><strong>Teaching Points:</strong><br>1. Honour marriage, uphold pure courtship, and lead homes in godliness (Eph. 5:22-33)[cite: 12].<br>2. Financial and workplace integrity: honest hours, no fraud or bribery (Colossians 3:22-24)[cite: 12].",
+                    content: "<strong>Memory Verse:</strong> \"Marriage is honourable in all, and the bed undefiled.\" - Heb. 13:4<br><br><strong>Teaching Points:</strong><br>1. Honour marriage, uphold pure courtship, and lead homes in godliness (Eph. 5:22-33).<br>2. Financial and workplace integrity: honest hours, no fraud or bribery (Colossians 3:22-24).",
                     quiz: [
                         { q: "Hebrews 13:4 teaches that marriage is:", options: ["Optional", "Honourable in all", "Only for pastors", "A contract to be broken"], answer: 1 },
                         { q: "True or False: Taking a small bribe at work is acceptable.", options: ["True", "False"], answer: 1 },
@@ -364,7 +405,7 @@
                     moduleId: 9,
                     tag: "Week 3 • Module 9",
                     title: "Sustaining Holiness - Accountability and Restoration",
-                    content: "<strong>Memory Verse:</strong> \"Thy word have I hid in mine heart...\" - Psalm 119:11[cite: 13]<br><br><strong>Teaching Points:</strong><br>1. Sustain holiness via the Word, prayer, fasting, and accountability (Psalm 119:9-11)[cite: 13].<br>2. If you fall: do not hide; confess, repent, and submit to restoration (1 John 1:9; Galatians 6:1)[cite: 13].",
+                    content: "<strong>Memory Verse:</strong> \"Thy word have I hid in mine heart...\" - Psalm 119:11<br><br><strong>Teaching Points:</strong><br>1. Sustain holiness via the Word, prayer, fasting, and accountability (Psalm 119:9-11).<br>2. If you fall: do not hide; confess, repent, and submit to restoration (1 John 1:9; Galatians 6:1).",
                     quiz: [
                         { q: "Psalm 119:11 says hiding God's Word in the heart helps us to:", options: ["Get rich", "Not sin against God", "Preach louder", "Win arguments"], answer: 1 },
                         { q: "True or False: A worker who falls into sin should hide it.", options: ["True", "False"], answer: 1 },
@@ -457,7 +498,7 @@
             });
             const total = m.quiz.length * 2;
             const percentage = (score / total) * 100;
-            const passMark = percentage >= 60; // 60% pass mark[cite: 3]
+            const passMark = percentage >= 60;
 
             const resDiv = document.getElementById('quizResult');
             if (passMark) {
@@ -470,10 +511,11 @@
                             highestCompletedModule: highestCompletedModule
                         });
                     }
+                    updateProgressUI();
                     renderSidebar();
                 }
             } else {
-                resDiv.innerHTML = `Your Score: ${score}/${total} (${percentage}%) - <span class="text-red-600">FAILED - You need at least 60% to unlock the next module. Please review and retake.</span>[cite: 3]`;
+                resDiv.innerHTML = `Your Score: ${score}/${total} (${percentage}%) - <span class="text-red-600">FAILED - You need at least 60% to unlock the next module. Please review and retake.</span>`;
             }
         }
 
