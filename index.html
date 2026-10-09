@@ -41,6 +41,7 @@
                     <i class="fa-solid fa-cloud"></i>
                 </div>
                 <h2 class="font-bold text-xl tracking-tight">PDM Global Workers LMS</h2>
+                <p id="authSubtitle" class="text-xs text-purple-200">Please sign in with your registered account</p>
             </div>
             
             <form id="authForm" onsubmit="handleAuth(event)" class="p-8 space-y-4">
@@ -261,6 +262,17 @@
 
         auth.onAuthStateChanged(async (user) => {
             if (user) {
+                const userDocRef = db.collection('users').doc(user.uid);
+                const userDoc = await userDocRef.get();
+                
+                // Enforce that the account must exist in the registered 'users' database
+                if (!userDoc.exists && !user.email.includes('admin') && user.email !== 'pastorhelen@pdmglobal.org') {
+                    await auth.signOut();
+                    alert("Access Denied: You must register an account before logging in.");
+                    document.getElementById('authModal').classList.remove('hidden');
+                    return;
+                }
+
                 document.getElementById('authModal').classList.add('hidden');
                 document.getElementById('navUserName').innerText = user.email;
                 
@@ -272,22 +284,14 @@
                     document.getElementById('dashboardNavBtn').classList.add('hidden');
                 }
 
-                const userDocRef = db.collection('users').doc(user.uid);
-                const userDoc = await userDocRef.get();
-                
                 if (userDoc.exists) {
                     const data = userDoc.data();
                     highestCompletedModule = data.highestCompletedModule || 1;
                     workerFullName = data.fullName || user.email;
                 } else {
-                    await userDocRef.set({ 
-                        email: user.email, 
-                        fullName: user.email,
-                        highestCompletedModule: 1,
-                        registeredAt: firebase.firestore.FieldValue.serverTimestamp() 
-                    });
-                    highestCompletedModule = 1;
+                    // Fallback for admin if not in users collection
                     workerFullName = user.email;
+                    highestCompletedModule = 1;
                 }
 
                 updateProgressUI();
@@ -302,6 +306,7 @@
             document.getElementById('nameFieldGroup').classList.toggle('hidden', !isRegisterMode);
             document.getElementById('authSubmitBtn').innerText = isRegisterMode ? 'Register Account' : 'Sign In to Portal';
             document.getElementById('authToggleText').innerText = isRegisterMode ? 'Already have an account? Sign in' : 'Need an account? Register here';
+            document.getElementById('authSubtitle').innerText = isRegisterMode ? 'Create your worker profile to get started' : 'Please sign in with your registered account';
         }
 
         async function handleAuth(event) {
@@ -319,7 +324,9 @@
                         highestCompletedModule: 1,
                         registeredAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
-                    alert("Account registered and saved successfully!");
+                    alert("Registration successful! You can now sign in.");
+                    toggleAuthMode(); // Switch back to sign-in view
+                    await auth.signOut();
                 } else {
                     await auth.signInWithEmailAndPassword(email, password);
                 }
@@ -606,7 +613,7 @@
             });
             const total = m.quiz.length * 2;
             const percentage = (score / total) * 100;
-            const passMark = percentage >= 60; // 60% pass mark
+            const passMark = percentage >= 60;
 
             const resDiv = document.getElementById('quizResult');
             if (passMark) {
