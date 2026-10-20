@@ -118,7 +118,7 @@
                     <div id="modContent" class="text-slate-700 leading-relaxed text-sm space-y-4">Syncing with Firebase Firestore...</div>
                 </div>
 
-                <!-- Discussion Forum Panel with Comments, Replies, Likes, & Emojis -->
+                <!-- Discussion Forum Panel with Thumbs Up, Reply, & Emojis -->
                 <div id="forumPanel" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 space-y-6 hidden">
                     <div class="flex items-center justify-between border-b border-slate-200 pb-4">
                         <div>
@@ -138,7 +138,7 @@
                                 <button type="button" onclick="insertEmoji('🙏', 'forumInputMessage')">🙏</button>
                                 <button type="button" onclick="insertEmoji('🔥', 'forumInputMessage')">🔥</button>
                                 <button type="button" onclick="insertEmoji('💡', 'forumInputMessage')">💡</button>
-                                <button type="button" onclick="insertEmoji('❤️', 'forumInputMessage')">❤️</button>
+                                <button type="button" onclick="insertEmoji('👍', 'forumInputMessage')">👍</button>
                                 <button type="button" onclick="insertEmoji('✨', 'forumInputMessage')">✨</button>
                             </div>
                             <button type="submit" class="bg-purple-700 hover:bg-purple-800 text-white font-semibold px-5 py-2.5 rounded-xl text-xs shadow transition">Post Message</button>
@@ -340,10 +340,10 @@
                         </div>
                         <p class="text-xs text-slate-700 leading-relaxed">${post.text}</p>
                         
-                        <!-- Like, Emoji & Interaction Toolbar -->
+                        <!-- Thumbs Up Like & Reply Button Toolbar -->
                         <div class="flex items-center gap-4 pt-2 border-t border-slate-200 text-xs">
-                            <button onclick="toggleLike('${postId}')" class="flex items-center gap-1.5 font-semibold ${hasLiked ? 'text-rose-600' : 'text-slate-500 hover:text-slate-700'}">
-                                <i class="fa-solid fa-heart"></i> <span>${likesCount} Likes</span>
+                            <button onclick="toggleLike('${postId}')" class="flex items-center gap-1.5 font-semibold ${hasLiked ? 'text-purple-700 font-bold' : 'text-slate-500 hover:text-slate-700'}">
+                                <i class="fa-solid fa-thumbs-up"></i> <span>Like (${likesCount})</span>
                             </button>
                             <button onclick="toggleReplyBox('${postId}')" class="text-slate-500 hover:text-purple-700 font-semibold flex items-center gap-1">
                                 <i class="fa-solid fa-reply"></i> Reply (${post.comments ? post.comments.length : 0})
