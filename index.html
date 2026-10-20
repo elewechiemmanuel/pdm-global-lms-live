@@ -24,11 +24,6 @@
             -ms-user-select: none;
             user-select: none;
         }
-        @media print {
-            body * { visibility: hidden; }
-            #certificateModal, #certificateModal * { visibility: visible; }
-            #certificateModal { position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: white !important; }
-        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col justify-between no-copy" oncontextmenu="return false;">
@@ -71,99 +66,6 @@
         </div>
     </div>
 
-    <!-- Admin Course Upload Modal -->
-    <div id="adminModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden border border-slate-200 max-h-[90vh] flex flex-col">
-            <div class="bg-purple-900 text-white px-6 py-4 flex items-center justify-between">
-                <span class="font-bold text-sm"><i class="fa-solid fa-shield-halved"></i> Admin Course Upload Portal</span>
-                <button onclick="closeAdminModal()" class="text-purple-200 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-            
-            <form onsubmit="handleAdminUpload(event)" class="p-6 space-y-4 overflow-y-auto text-sm flex-grow">
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Module ID (Number)</label>
-                        <input type="number" id="adminModId" required value="1" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Module Tag</label>
-                        <input type="text" id="adminModTag" required placeholder="Week 1 • Module 1" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Module Title</label>
-                    <input type="text" id="adminModTitle" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Lecture HTML Content</label>
-                    <textarea id="adminModContent" rows="6" required class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs" placeholder="Enter HTML content or text..."></textarea>
-                </div>
-                <div class="flex justify-end gap-2 pt-2">
-                    <button type="button" onclick="closeAdminModal()" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold">Cancel</button>
-                    <button type="submit" class="bg-purple-700 text-white px-5 py-2 rounded-xl text-xs font-semibold shadow">Save to Firestore</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Admin Worker Progress Dashboard Modal -->
-    <div id="dashboardModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full overflow-hidden border border-slate-200 max-h-[90vh] flex flex-col">
-            <div class="bg-purple-900 text-white px-6 py-4 flex items-center justify-between">
-                <span class="font-bold text-sm"><i class="fa-solid fa-users-line"></i> Admin Worker Progress Dashboard</span>
-                <div class="flex items-center gap-3">
-                    <button onclick="downloadWorkerReport()" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg font-semibold shadow flex items-center gap-1.5 transition">
-                        <i class="fa-solid fa-download"></i> Download Report
-                    </button>
-                    <button onclick="closeDashboardModal()" class="text-purple-200 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-                </div>
-            </div>
-            
-            <div class="p-6 overflow-y-auto flex-grow">
-                <table class="w-full text-left border-collapse text-xs">
-                    <thead>
-                        <tr class="bg-slate-100 text-slate-700 uppercase">
-                            <th class="p-3 border-b w-12">S/N</th>
-                            <th class="p-3 border-b">Full Name</th>
-                            <th class="p-3 border-b">Email Address</th>
-                            <th class="p-3 border-b">Progress Level</th>
-                            <th class="p-3 border-b">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="workersTableBody">
-                        <tr><td colspan="5" class="p-4 text-center text-slate-500">Loading worker records...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- Certificate Modal -->
-    <div id="certificateModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full p-8 border-8 border-purple-900 text-center space-y-6 relative">
-            <button onclick="closeCertificate()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark text-xl"></i></button>
-            <div class="space-y-2">
-                <div class="text-purple-900 text-3xl"><i class="fa-solid fa-award"></i></div>
-                <h3 class="font-serif text-2xl font-bold text-purple-900 uppercase tracking-widest">Certificate of Completion</h3>
-                <p class="text-xs text-slate-500 uppercase tracking-wider">PDM Global Workers LMS • Living Holiness Training</p>
-            </div>
-            <div class="space-y-3 py-4">
-                <p class="text-xs text-slate-600 uppercase">This is proudly presented to</p>
-                <h2 id="certWorkerName" class="font-serif text-3xl font-bold text-slate-900 border-b-2 border-purple-200 pb-2 inline-block px-8">Worker Name</h2>
-                <p class="text-xs text-slate-600 max-w-md mx-auto pt-2">For successfully completing all 9 modules and passing the final requirements of the Living Holiness Workers' Training Course.</p>
-            </div>
-            <div class="flex justify-between items-center pt-4 border-t border-slate-200 text-xs">
-                <div>
-                    <p class="font-bold text-slate-800">Pastor Helen Olabiyi</p>
-                    <p class="text-slate-500">Tutor</p>
-                </div>
-                <div>
-                    <button onclick="window.print()" class="bg-purple-700 text-white px-5 py-2.5 rounded-xl font-semibold shadow hover:bg-purple-800"><i class="fa-solid fa-print"></i> Print Certificate</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Header -->
     <header class="bg-purple-900 text-white shadow-md sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 py-3 flex items-center justify-between">
@@ -175,12 +77,6 @@
                 </div>
             </div>
             <div class="flex items-center space-x-3">
-                <button id="dashboardNavBtn" onclick="openDashboardModal()" class="hidden text-xs bg-emerald-700 hover:bg-emerald-800 text-white px-3 py-1.5 rounded-lg font-semibold shadow">
-                    <i class="fa-solid fa-users"></i> Worker Dashboard
-                </button>
-                <button id="adminNavBtn" onclick="openAdminModal()" class="hidden text-xs bg-indigo-700 hover:bg-indigo-800 text-white px-3 py-1.5 rounded-lg font-semibold shadow">
-                    <i class="fa-solid fa-gear"></i> Admin Upload
-                </button>
                 <span id="navUserName" class="text-xs bg-purple-800 px-3 py-1.5 rounded-lg">Loading...</span>
                 <button onclick="logout()" class="text-xs bg-purple-950 text-purple-200 px-3 py-1.5 rounded-lg">Logout</button>
             </div>
@@ -189,28 +85,19 @@
 
     <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         
-        <!-- Live Worker Progress Status Banner -->
+        <!-- Progress Status Banner -->
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div class="space-y-1 text-center sm:text-left">
                 <span class="text-xs font-bold text-purple-700 uppercase tracking-wider"><i class="fa-solid fa-chart-line"></i> Training Progress</span>
                 <h2 id="workerProgressTitle" class="text-lg font-bold text-slate-900">Loading your progress...</h2>
-                <p id="workerProgressSub" class="text-xs text-slate-500">Complete tests with 60% or higher to advance.</p>
-            </div>
-            <div class="flex items-center gap-4 w-full sm:w-auto">
-                <div id="certButtonContainer" class="hidden">
-                    <button onclick="openCertificate()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-semibold text-xs shadow flex items-center gap-2"><i class="fa-solid fa-award"></i> View Certificate</button>
-                </div>
-                <div class="w-full sm:w-64 bg-slate-100 rounded-full h-4 overflow-hidden border border-slate-200">
-                    <div id="progressBar" class="bg-purple-600 h-full transition-all duration-500" style="width: 0%"></div>
-                </div>
             </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            <!-- Sidebar Modules & Forum Nav -->
+            <!-- Sidebar Modules Nav -->
             <div class="space-y-4">
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-3">
-                    <h3 class="font-bold text-slate-900 text-xs uppercase tracking-wider"><i class="fa-solid fa-list-check text-purple-700"></i> Course Modules (9)</h3>
+                    <h3 class="font-bold text-slate-900 text-xs uppercase tracking-wider"><i class="fa-solid fa-list-check text-purple-700"></i> Course Modules</h3>
                     <div id="sidebarModules" class="space-y-2 max-h-[50vh] overflow-y-auto pr-1"></div>
                     <hr class="my-2 border-slate-100">
                     <button onclick="openForumView()" class="w-full text-left p-3 rounded-xl bg-purple-50 border border-purple-200 text-xs font-bold text-purple-900 hover:bg-purple-100 transition flex items-center justify-between">
@@ -220,63 +107,54 @@
                 </div>
             </div>
 
-            <!-- Lecture & Quiz Panel / Forum Panel -->
+            <!-- Panels -->
             <div class="lg:col-span-3 space-y-6">
+                <!-- Lecture Panel -->
                 <div id="lecturePanel" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 space-y-6">
                     <div>
                         <span id="modTag" class="text-xs font-semibold text-purple-700 uppercase">Loading Module...</span>
                         <h2 id="modTitle" class="text-2xl font-bold text-slate-900 mt-1">Please Wait</h2>
                     </div>
                     <div id="modContent" class="text-slate-700 leading-relaxed text-sm space-y-4">Syncing with Firebase Firestore...</div>
-                    
-                    <!-- Quiz Section -->
-                    <div id="quizSection" class="border-t border-slate-200 pt-6 mt-6 hidden">
-                        <h3 class="font-bold text-lg text-slate-900 mb-4"><i class="fa-solid fa-pen-to-square text-purple-700"></i> Module Test (10 Marks)</h3>
-                        <div id="quizContainer" class="space-y-6"></div>
-                        <button onclick="submitQuiz()" class="mt-6 bg-purple-700 hover:bg-purple-800 text-white font-semibold px-6 py-3 rounded-xl text-sm shadow transition">
-                            Submit Test & Unlock Next Module
-                        </button>
-                        <div id="quizResult" class="mt-4 font-bold text-sm"></div>
-                    </div>
                 </div>
 
-                <!-- Discussion Forum Panel (Initially Hidden, shown when clicked) -->
+                <!-- Discussion Forum Panel with Comments, Replies, Likes, & Emojis -->
                 <div id="forumPanel" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 space-y-6 hidden">
                     <div class="flex items-center justify-between border-b border-slate-200 pb-4">
                         <div>
                             <h2 class="text-xl font-bold text-slate-900"><i class="fa-solid fa-comments text-purple-700"></i> Workers Discussion Forum</h2>
-                            <p class="text-xs text-slate-500">Interact, ask questions, and share encouragement with other workers.</p>
+                            <p class="text-xs text-slate-500">Engage, comment, reply, and react with emojis.</p>
                         </div>
                         <button onclick="loadModule(currentModuleId)" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-3 py-2 rounded-xl">Back to Lessons</button>
                     </div>
 
                     <!-- Post New Message Form -->
                     <form onsubmit="postForumMessage(event)" class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                        <label class="block text-xs font-bold text-slate-700 uppercase">Share a thought or question</label>
-                        <textarea id="forumInputMessage" rows="3" required placeholder="Type your message here..." class="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-600"></textarea>
-                        <div class="flex justify-end">
+                        <label class="block text-xs font-bold text-slate-700 uppercase">Create New Discussion Post</label>
+                        <textarea id="forumInputMessage" rows="3" required placeholder="What would you like to share with fellow workers?..." class="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-600"></textarea>
+                        <div class="flex justify-between items-center">
+                            <!-- Quick Emoji Buttons for Main Post -->
+                            <div class="flex gap-1 text-base">
+                                <button type="button" onclick="insertEmoji('🙏', 'forumInputMessage')">🙏</button>
+                                <button type="button" onclick="insertEmoji('🔥', 'forumInputMessage')">🔥</button>
+                                <button type="button" onclick="insertEmoji('💡', 'forumInputMessage')">💡</button>
+                                <button type="button" onclick="insertEmoji('❤️', 'forumInputMessage')">❤️</button>
+                                <button type="button" onclick="insertEmoji('✨', 'forumInputMessage')">✨</button>
+                            </div>
                             <button type="submit" class="bg-purple-700 hover:bg-purple-800 text-white font-semibold px-5 py-2.5 rounded-xl text-xs shadow transition">Post Message</button>
                         </div>
                     </form>
 
                     <!-- Message Feed -->
-                    <div id="forumMessagesFeed" class="space-y-4 max-h-[50vh] overflow-y-auto pr-2">
-                        <p class="text-xs text-slate-500 text-center py-4">Loading messages...</p>
+                    <div id="forumMessagesFeed" class="space-y-6 max-h-[60vh] overflow-y-auto pr-2">
+                        <p class="text-xs text-slate-500 text-center py-4">Loading community messages...</p>
                     </div>
                 </div>
-
             </div>
         </div>
     </main>
 
     <script>
-        document.addEventListener('keydown', function(e) {
-            if (e.ctrlKey && (e.key === 'c' || e.key === 'a' || e.key === 'u' || e.key === 's' || e.key === 'p')) {
-                e.preventDefault();
-                alert("Copying course content is restricted.");
-            }
-        });
-
         const firebaseConfig = {
             apiKey: "AIzaSyA9oVYvQPO9EGbcxWNB2-kVRc3ftkBtI2Y",
             authDomain: "pdmglobalworkerslms-9b370.firebaseapp.com",
@@ -296,41 +174,24 @@
         let currentModuleId = 1;
         let highestCompletedModule = 1;
         let workerFullName = "";
-        let cachedWorkersData = []; // Global cache for admin dashboard report export
+        let currentUserEmail = "";
 
         auth.onAuthStateChanged(async (user) => {
             if (user) {
+                currentUserEmail = user.email;
                 const userDocRef = db.collection('users').doc(user.uid);
                 const userDoc = await userDocRef.get();
                 
-                if (!userDoc.exists && !user.email.includes('admin') && user.email !== 'pastorhelen@pdmglobal.org') {
-                    await auth.signOut();
-                    alert("Access Denied: You must register an account before logging in.");
-                    document.getElementById('authModal').classList.remove('hidden');
-                    return;
+                if (userDoc.exists) {
+                    workerFullName = userDoc.data().fullName || user.email;
+                    highestCompletedModule = userDoc.data().highestCompletedModule || 1;
+                } else {
+                    workerFullName = user.email;
                 }
 
                 document.getElementById('authModal').classList.add('hidden');
                 document.getElementById('navUserName').innerText = user.email;
-                
-                if (user.email.includes('admin') || user.email === 'pastorhelen@pdmglobal.org') {
-                    document.getElementById('adminNavBtn').classList.remove('hidden');
-                    document.getElementById('dashboardNavBtn').classList.remove('hidden');
-                } else {
-                    document.getElementById('adminNavBtn').classList.add('hidden');
-                    document.getElementById('dashboardNavBtn').classList.add('hidden');
-                }
-
-                if (userDoc.exists) {
-                    const data = userDoc.data();
-                    highestCompletedModule = data.highestCompletedModule || 1;
-                    workerFullName = data.fullName || user.email;
-                } else {
-                    workerFullName = user.email;
-                    highestCompletedModule = 1;
-                }
-
-                updateProgressUI();
+                document.getElementById('workerProgressTitle').innerText = `${workerFullName} — Level ${highestCompletedModule} of 9 Unlocked`;
                 await fetchModulesFromFirebase();
             } else {
                 document.getElementById('authModal').classList.remove('hidden');
@@ -342,7 +203,6 @@
             document.getElementById('nameFieldGroup').classList.toggle('hidden', !isRegisterMode);
             document.getElementById('authSubmitBtn').innerText = isRegisterMode ? 'Register Account' : 'Sign In to Portal';
             document.getElementById('authToggleText').innerText = isRegisterMode ? 'Already have an account? Sign in' : 'Need an account? Register here';
-            document.getElementById('authSubtitle').innerText = isRegisterMode ? 'Create your worker profile to get started' : 'Please sign in with your registered account';
         }
 
         async function handleAuth(event) {
@@ -360,8 +220,7 @@
                         highestCompletedModule: 1,
                         registeredAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
-                    alert("Registration successful! Welcome to the portal.");
-                    // Seamless sign-in transition: auth.onAuthStateChanged will log them straight into the portal
+                    alert("Registration successful! Welcome.");
                 } else {
                     await auth.signInWithEmailAndPassword(email, password);
                 }
@@ -370,93 +229,26 @@
             }
         }
 
-        function updateProgressUI() {
-            const completedCount = highestCompletedModule - 1;
-            const percentage = Math.round((completedCount / 9) * 100);
-            
-            document.getElementById('workerProgressTitle').innerText = `${workerFullName} — Level ${highestCompletedModule} of 9 Unlocked`;
-            document.getElementById('workerProgressSub').innerText = `Course Completion: ${percentage}% (${completedCount}/9 modules passed)`;
-            document.getElementById('progressBar').style.width = `${percentage}%`;
-
-            if (highestCompletedModule > 9) {
-                document.getElementById('certButtonContainer').classList.remove('hidden');
-            } else {
-                document.getElementById('certButtonContainer').classList.add('hidden');
-            }
-        }
-
         async function fetchModulesFromFirebase() {
             try {
                 const snapshot = await db.collection('modules').orderBy('moduleId').get();
                 modulesData = [];
-                snapshot.forEach(doc => {
-                    modulesData.push(doc.data());
-                });
-
-                if (modulesData.length < 9) {
-                    await seedAllModules();
-                } else {
-                    renderSidebar();
-                    loadModule(currentModuleId);
-                }
+                snapshot.forEach(doc => modulesData.push(doc.data()));
+                if (modulesData.length > 0) loadModule(1);
+                renderSidebar();
             } catch (err) {
-                console.error("Error fetching modules:", err);
+                console.error(err);
             }
-        }
-
-        async function seedAllModules() {
-            const allModules = [
-                {
-                    moduleId: 1,
-                    tag: "Week 1 • Module 1",
-                    title: "The Call to Holiness",
-                    content: `
-                        <div class="bg-purple-50 border border-purple-200 p-5 rounded-2xl mb-6 shadow-sm">
-                            <h3 class="font-bold text-purple-900 text-base mb-2"><i class="fa-solid fa-book-open text-purple-700 mr-2"></i> Course Overview & Guidelines</h3>
-                            <p class="text-xs text-slate-700 mb-2">This course trains every PDM worker to live a holy life at home, at work and in service, in 9 modules over 3 weeks. Every teaching is grounded in Scripture.</p>
-                            <p class="text-xs text-slate-700 mb-2"><strong>Who it is for:</strong> Ushers, choir, media, children's teachers, protocol, follow-up, prayer team, sanctuary keepers, department heads and anyone being considered for service.</p>
-                            <p class="text-xs text-slate-700 mb-2"><strong>Course Goal:</strong> At the end, each worker can explain what holiness is, show where it applies in daily life, and sign the PDM Worker's Holiness Covenant.</p>
-                            <p class="text-xs text-slate-700"><strong>Grading:</strong> Each module test = 10 marks (5 questions × 2 marks). Total = 90 marks. Pass mark: <strong>60% (54/90)</strong>. Workers below 60% repeat the modules they failed before the covenant service.</p>
-                        </div>
-                        <hr class="my-4 border-slate-200">
-                        <strong>Memory Verse:</strong> "Because it is written, Be ye holy; for I am holy." - 1 Peter 1:16<br><br>
-                        <strong>Aim:</strong> The worker understands that holiness is God's nature and God's command, not an option for "super-Christians".<br><br>
-                        <strong>Teaching Points:</strong><br>
-                        1. Holiness starts with who God is. God is holy (Isaiah 6:3; Revelation 4:8). Holiness means separated from sin and set apart for God.<br>
-                        2. Holiness is commanded for every believer (1 Peter 1:15-16; 1 Thess. 4:7). It is not reserved for pastors.<br>
-                        3. Holiness is required for heaven (Hebrews 12:14; Revelation 21:27). Making heaven requires holiness as a lifestyle.<br>
-                        4. Holiness has two sides: separation from sin (2 Cor. 6:17) and dedication to God (Romans 12:1-2).<br>
-                        5. Holiness is not legalism. Rules without a changed heart produce pride (Matthew 23:25-28). Holiness flows from love for God (John 14:15).
-                    `,
-                    quiz: [
-                        { q: "Holiness simply means:", options: ["Never smiling", "Being separated from sin and set apart for God", "Wearing white", "Attending every service"], answer: 1 },
-                        { q: "True or False: Holiness is only required of pastors and ministers.", options: ["True", "False"], answer: 1 },
-                        { q: "Which verse says 'without holiness no man shall see the Lord'?", options: ["John 3:16", "Hebrews 12:14", "Psalm 23:1", "Genesis 1:1"], answer: 1 }
-                    ]
-                }
-            ];
-
-            for (let mod of allModules) {
-                await db.collection('modules').doc('mod_' + mod.moduleId).set(mod);
-            }
-            await fetchModulesFromFirebase();
         }
 
         function renderSidebar() {
             const container = document.getElementById('sidebarModules');
             container.innerHTML = '';
             modulesData.forEach((mod) => {
-                const isUnlocked = mod.moduleId <= highestCompletedModule;
                 const btn = document.createElement('button');
-                btn.className = `w-full text-left p-3 rounded-xl text-xs font-semibold flex items-center justify-between transition ${
-                    isUnlocked 
-                        ? (mod.moduleId === currentModuleId ? 'bg-purple-900 text-white shadow' : 'bg-slate-100 text-slate-700 hover:bg-slate-200')
-                        : 'bg-slate-50 text-slate-400 cursor-not-allowed'
-                }`;
-                btn.innerHTML = `<span><i class="fa-solid ${isUnlocked ? 'fa-book-open text-purple-300' : 'fa-lock text-slate-300'} mr-2"></i> ${mod.tag}: ${mod.title}</span>`;
-                if (isUnlocked) {
-                    btn.onclick = () => loadModule(mod.moduleId);
-                }
+                btn.className = `w-full text-left p-3 rounded-xl text-xs font-semibold flex items-center justify-between transition bg-slate-100 text-slate-700 hover:bg-slate-200`;
+                btn.innerHTML = `<span><i class="fa-solid fa-book-open text-purple-700 mr-2"></i> ${mod.tag}: ${mod.title}</span>`;
+                btn.onclick = () => loadModule(mod.moduleId);
                 container.appendChild(btn);
             });
         }
@@ -465,61 +257,170 @@
             currentModuleId = id;
             const mod = modulesData.find(m => m.moduleId === id);
             if (!mod) return;
-
             document.getElementById('modTag').innerText = mod.tag;
             document.getElementById('modTitle').innerText = mod.title;
             document.getElementById('modContent').innerHTML = mod.content;
-            
-            renderSidebar();
-            renderQuiz(mod.quiz);
-
             document.getElementById('lecturePanel').classList.remove('hidden');
             document.getElementById('forumPanel').classList.add('hidden');
         }
 
-        function renderQuiz(quizArray) {
-            const container = document.getElementById('quizContainer');
-            container.innerHTML = '';
-            
-            if (!quizArray || quizArray.length === 0) {
-                document.getElementById('quizSection').classList.add('hidden');
-                return;
+        function openForumView() {
+            document.getElementById('lecturePanel').classList.add('hidden');
+            document.getElementById('forumPanel').classList.remove('hidden');
+            loadForumMessages();
+        }
+
+        function insertEmoji(emoji, elementId) {
+            const input = document.getElementById(elementId);
+            input.value += emoji;
+            input.focus();
+        }
+
+        async function postForumMessage(event) {
+            event.preventDefault();
+            const messageText = document.getElementById('forumInputMessage').value;
+            if (!messageText.trim()) return;
+
+            try {
+                await db.collection('forum_posts').add({
+                    author: workerFullName,
+                    email: currentUserEmail,
+                    text: messageText,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    likes: [],
+                    comments: []
+                });
+                document.getElementById('forumInputMessage').value = '';
+                loadForumMessages();
+            } catch (err) {
+                alert("Error posting message: " + err.message);
+            }
+        }
+
+        async function loadForumMessages() {
+            const feed = document.getElementById('forumMessagesFeed');
+            feed.innerHTML = '<p class="text-xs text-slate-500 text-center py-4">Loading discussions...</p>';
+
+            try {
+                const snapshot = await db.collection('forum_posts').orderBy('createdAt', 'desc').get();
+                feed.innerHTML = '';
+
+                if (snapshot.empty) {
+                    feed.innerHTML = '<p class="text-xs text-slate-500 text-center py-4">No discussions yet. Be the first to post!</p>';
+                    return;
+                }
+
+                snapshot.forEach(doc => {
+                    const post = doc.data();
+                    const postId = doc.id;
+                    const likesCount = post.likes ? post.likes.length : 0;
+                    const hasLiked = post.likes && post.likes.includes(currentUserEmail);
+
+                    let commentsHtml = '';
+                    if (post.comments && post.comments.length > 0) {
+                        post.comments.forEach(comment => {
+                            commentsHtml += `
+                                <div class="bg-white p-3 rounded-xl border border-slate-100 space-y-1 text-xs">
+                                    <div class="flex justify-between font-bold text-slate-800">
+                                        <span>${comment.author}</span>
+                                        <span class="text-[10px] text-slate-400 font-normal">Just now</span>
+                                    </div>
+                                    <p class="text-slate-600">${comment.text}</p>
+                                </div>
+                            `;
+                        });
+                    }
+
+                    const postDiv = document.createElement('div');
+                    postDiv.className = 'bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-3';
+                    postDiv.innerHTML = `
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-xs text-purple-900">${post.author}</span>
+                            <span class="text-[10px] text-slate-400">Community Post</span>
+                        </div>
+                        <p class="text-xs text-slate-700 leading-relaxed">${post.text}</p>
+                        
+                        <!-- Like, Emoji & Interaction Toolbar -->
+                        <div class="flex items-center gap-4 pt-2 border-t border-slate-200 text-xs">
+                            <button onclick="toggleLike('${postId}')" class="flex items-center gap-1.5 font-semibold ${hasLiked ? 'text-rose-600' : 'text-slate-500 hover:text-slate-700'}">
+                                <i class="fa-solid fa-heart"></i> <span>${likesCount} Likes</span>
+                            </button>
+                            <button onclick="toggleReplyBox('${postId}')" class="text-slate-500 hover:text-purple-700 font-semibold flex items-center gap-1">
+                                <i class="fa-solid fa-reply"></i> Reply (${post.comments ? post.comments.length : 0})
+                            </button>
+                        </div>
+
+                        <!-- Expandable Reply Section -->
+                        <div id="replyBox_${postId}" class="space-y-3 pt-2 hidden">
+                            <div class="space-y-2 max-h-40 overflow-y-auto pl-2 border-l-2 border-purple-200">
+                                ${commentsHtml || '<p class="text-[11px] text-slate-400">No replies yet.</p>'}
+                            </div>
+                            <form onsubmit="postComment(event, '${postId}')" class="flex gap-2 pt-1">
+                                <input type="text" id="commentInput_${postId}" required placeholder="Write a reply..." class="flex-grow p-2 bg-white border border-slate-200 rounded-xl text-xs">
+                                <button type="submit" class="bg-purple-700 text-white px-3 py-2 rounded-xl text-xs font-semibold">Send</button>
+                            </form>
+                            <!-- Quick Emojis for Replies -->
+                            <div class="flex gap-2 text-sm pt-1">
+                                <button type="button" onclick="insertEmoji('🙏', 'commentInput_${postId}')">🙏</button>
+                                <button type="button" onclick="insertEmoji('👍', 'commentInput_${postId}')">👍</button>
+                                <button type="button" onclick="insertEmoji('🔥', 'commentInput_${postId}')">🔥</button>
+                                <button type="button" onclick="insertEmoji('💡', 'commentInput_${postId}')">💡</button>
+                            </div>
+                        </div>
+                    `;
+                    feed.appendChild(postDiv);
+                });
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function toggleLike(postId) {
+            const postRef = db.collection('forum_posts').doc(postId);
+            const doc = await postRef.get();
+            if (!doc.exists) return;
+
+            let likes = doc.data().likes || [];
+            if (likes.includes(currentUserEmail)) {
+                likes = likes.filter(email => email !== currentUserEmail); // Unlike
+            } else {
+                likes.push(currentUserEmail); // Like
             }
 
-            document.getElementById('quizSection').classList.remove('hidden');
-            document.getElementById('quizResult').innerHTML = '';
+            await postRef.update({ likes: likes });
+            loadForumMessages();
+        }
 
-            quizArray.forEach((q, qIdx) => {
-                const qDiv = document.createElement('div');
-                qDiv.className = 'space-y-2';
-                
-                let optionsHtml = '';
-                q.options.forEach((opt, oIdx) => {
-                    optionsHtml += `
-                        <label class="flex items-center space-x-3 text-xs text-slate-700 cursor-pointer bg-slate-50 p-2.5 rounded-xl border border-slate-200 hover:bg-slate-100">
-                            <input type="radio" name="q_${qIdx}" value="${oIdx}" class="text-purple-600 focus:ring-purple-500">
-                            <span>${opt}</span>
-                        </label>
-                    `;
-                });
+        function toggleReplyBox(postId) {
+            const box = document.getElementById(`replyBox_${postId}`);
+            box.classList.toggle('hidden');
+        }
 
-                qDiv.innerHTML = `<p class="font-semibold text-xs text-slate-900">${qIdx + 1}. ${q.q}</p><div class="space-y-1.5">${optionsHtml}</div>`;
-                container.appendChild(qDiv);
+        async function postComment(event, postId) {
+            event.preventDefault();
+            const input = document.getElementById(`commentInput_${postId}`);
+            const commentText = input.value;
+            if (!commentText.trim()) return;
+
+            const postRef = db.collection('forum_posts').doc(postId);
+            const newComment = {
+                author: workerFullName,
+                email: currentUserEmail,
+                text: commentText,
+                createdAt: new Date().toISOString()
+            };
+
+            await postRef.update({
+                comments: firebase.firestore.FieldValue.arrayUnion(newComment)
             });
+
+            input.value = '';
+            loadForumMessages();
         }
 
         async function logout() {
             await auth.signOut();
             window.location.reload();
-        }
-
-        function openCertificate() {
-            document.getElementById('certWorkerName').innerText = workerFullName;
-            document.getElementById('certificateModal').classList.remove('hidden');
-        }
-
-        function closeCertificate() {
-            document.getElementById('certificateModal').classList.add('hidden');
         }
     </script>
 </body>
