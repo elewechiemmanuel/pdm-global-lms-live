@@ -24,6 +24,11 @@
             -ms-user-select: none;
             user-select: none;
         }
+        /* iOS 터치 반응 최적화 */
+        button {
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
         @media print {
             body * { visibility: hidden; }
             #certificateModal, #certificateModal * { visibility: visible; }
@@ -145,7 +150,7 @@
             <div class="space-y-2">
                 <div class="text-purple-900 text-3xl"><i class="fa-solid fa-award"></i></div>
                 <h3 class="font-serif text-2xl font-bold text-purple-900 uppercase tracking-widest">Certificate of Completion</h3>
-                <p class="text-xs text-slate-500 uppercase tracking-wider">PDM Global Workers  • Living Holiness Training</p>
+                <p class="text-xs text-slate-500 uppercase tracking-wider">PDM Global Workers • Living Holiness Training</p>
             </div>
             <div class="space-y-3 py-4">
                 <p class="text-xs text-slate-600 uppercase">This is proudly presented to</p>
@@ -357,7 +362,6 @@
                         alert("Registration successful! Welcome.");
                     } catch (regErr) {
                         if (regErr.code === 'auth/email-already-in-use') {
-                            alert("This email is already registered. Logging you into your account...");
                             await auth.signInWithEmailAndPassword(email, password);
                         } else {
                             throw regErr;
@@ -440,14 +444,22 @@
             modulesData.forEach((mod) => {
                 const isUnlocked = mod.moduleId <= highestCompletedModule;
                 const btn = document.createElement('button');
+                btn.type = 'button';
                 btn.className = `w-full text-left p-3 rounded-xl text-xs font-semibold flex items-center justify-between transition ${
                     isUnlocked 
-                        ? (mod.moduleId === currentModuleId ? 'bg-purple-900 text-white shadow' : 'bg-slate-100 text-slate-700 hover:bg-slate-200')
+                        ? (mod.moduleId === currentModuleId ? 'bg-purple-900 text-white shadow' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 active:bg-slate-300')
                         : 'bg-slate-50 text-slate-400 cursor-not-allowed'
                 }`;
                 btn.innerHTML = `<span><i class="fa-solid ${isUnlocked ? 'fa-book-open text-purple-300' : 'fa-lock text-slate-300'} mr-2"></i> ${mod.tag}: ${mod.title}</span>`;
+                
                 if (isUnlocked) {
-                    btn.onclick = () => loadModule(mod.moduleId);
+                    // 아이폰 Safari/모바일 터치 및 클릭 이벤트 모두 완벽히 수신하도록 처리
+                    const handleSelect = (e) => {
+                        e.preventDefault();
+                        loadModule(mod.moduleId);
+                    };
+                    btn.addEventListener('click', handleSelect);
+                    btn.addEventListener('touchend', handleSelect);
                 }
                 container.appendChild(btn);
             });
@@ -595,7 +607,6 @@
 
         function closeDashboardModal() { document.getElementById('dashboardModal').classList.add('hidden'); }
 
-        // Download Worker Progress CSV Report
         function downloadWorkerReport() {
             if (cachedWorkersData.length === 0) return alert("No data available to download.");
             let csv = "S/N,Full Name,Email Address,Progress Level,Status\n";
@@ -617,7 +628,6 @@
         }
         function closeCertificate() { document.getElementById('certificateModal').classList.add('hidden'); }
 
-        // Download Certificate Trigger Function
         function downloadCertificatePDF() {
             window.print();
         }
@@ -652,7 +662,6 @@
             feed.innerHTML = '<p class="text-xs text-slate-500 text-center py-4">Loading discussions...</p>';
 
             try {
-                // Fetching all previous records sorted by timestamp
                 const snapshot = await db.collection('forum_posts').get();
                 feed.innerHTML = '';
 
@@ -664,7 +673,6 @@
                 let posts = [];
                 snapshot.forEach(doc => posts.push({ id: doc.id, ...doc.data() }));
 
-                // Sort posts locally to ensure compatibility even if firestore index is missing
                 posts.sort((a, b) => {
                     const timeA = a.createdAt ? a.createdAt.seconds || 0 : 0;
                     const timeB = b.createdAt ? b.createdAt.seconds || 0 : 0;
