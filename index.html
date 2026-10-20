@@ -360,9 +360,8 @@
                         highestCompletedModule: 1,
                         registeredAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
-                    alert("Registration successful! You can now sign in.");
-                    toggleAuthMode();
-                    await auth.signOut();
+                    alert("Registration successful! Welcome to the portal.");
+                    // Seamless sign-in transition: auth.onAuthStateChanged will log them straight into the portal
                 } else {
                     await auth.signInWithEmailAndPassword(email, password);
                 }
@@ -509,145 +508,9 @@
             });
         }
 
-        async function submitQuiz() {
-            const mod = modulesData.find(m => m.moduleId === currentModuleId);
-            if (!mod || !mod.quiz) return;
-
-            let score = 0;
-            let total = mod.quiz.length;
-
-            mod.quiz.forEach((q, qIdx) => {
-                const selected = document.querySelector(`input[name="q_${qIdx}"]:checked`);
-                if (selected && parseInt(selected.value) === q.answer) {
-                    score++;
-                }
-            });
-
-            const percentage = Math.round((score / total) * 100);
-            const resultDiv = document.getElementById('quizResult');
-
-            if (percentage >= 60) {
-                resultDiv.innerHTML = `<span class="text-emerald-600">Passed! Score: ${score}/${total} (${percentage}%). Next module unlocked!</span>`;
-                
-                if (currentModuleId >= highestCompletedModule) {
-                    highestCompletedModule = currentModuleId + 1;
-                    const user = auth.currentUser;
-                    if (user) {
-                        await db.collection('users').doc(user.uid).update({
-                            highestCompletedModule: highestCompletedModule
-                        });
-                    }
-                    updateProgressUI();
-                    renderSidebar();
-                }
-            } else {
-                resultDiv.innerHTML = `<span class="text-red-600">Score: ${score}/${total} (${percentage}%). You need at least 60% to pass. Please review and try again.</span>`;
-            }
-        }
-
-        async function openDashboardModal() {
-            document.getElementById('dashboardModal').classList.remove('hidden');
-            const tbody = document.getElementById('workersTableBody');
-            tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-500">Loading worker records...</td></tr>`;
-
-            try {
-                const snapshot = await db.collection('users').get();
-                cachedWorkersData = [];
-                snapshot.forEach(doc => {
-                    cachedWorkersData.push(doc.data());
-                });
-
-                if (cachedWorkersData.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-500">No worker records found.</td></tr>`;
-                    return;
-                }
-
-                tbody.innerHTML = '';
-                cachedWorkersData.forEach((worker, index) => {
-                    const level = worker.highestCompletedModule || 1;
-                    const progressPercent = Math.round(((level - 1) / 9) * 100);
-                    const status = level > 9 ? 'Completed ✅' : `In Progress (${progressPercent}%)`;
-
-                    const row = document.createElement('tr');
-                    row.className = 'border-b hover:bg-slate-50';
-                    row.innerHTML = `
-                        <td class="p-3 font-semibold text-slate-500">${index + 1}</td>
-                        <td class="p-3 font-medium text-slate-900">${worker.fullName || 'N/A'}</td>
-                        <td class="p-3 text-slate-600">${worker.email || 'N/A'}</td>
-                        <td class="p-3 text-purple-700 font-semibold">Level ${level} of 9</td>
-                        <td class="p-3"><span class="px-2 py-1 rounded-full text-[10px] font-semibold ${level > 9 ? 'bg-emerald-100 text-emerald-800' : 'bg-purple-100 text-purple-800'}">${status}</span></td>
-                    `;
-                    tbody.appendChild(row);
-                });
-            } catch (err) {
-                console.error("Error loading dashboard:", err);
-                tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-red-500">Error loading worker records.</td></tr>`;
-            }
-        }
-
-        function closeDashboardModal() {
-            document.getElementById('dashboardModal').classList.add('hidden');
-        }
-
-        function downloadWorkerReport() {
-            if (!cachedWorkersData || cachedWorkersData.length === 0) {
-                alert("No data available to download.");
-                return;
-            }
-
-            let csvContent = "S/N,Full Name,Email Address,Progress Level,Status\n";
-
-            cachedWorkersData.forEach((worker, index) => {
-                const level = worker.highestCompletedModule || 1;
-                const progressPercent = Math.round(((level - 1) / 9) * 100);
-                const status = level > 9 ? "Completed" : `In Progress (${progressPercent}%)`;
-                
-                const name = `"${(worker.fullName || 'N/A').replace(/"/g, '""')}"`;
-                const email = `"${(worker.email || 'N/A').replace(/"/g, '""')}"`;
-
-                csvContent += `${index + 1},${name},${email},Level ${level} of 9,"${status}"\n`;
-            });
-
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.setAttribute('href', url);
-            link.setAttribute('download', `PDM_Workers_Progress_Report_${new Date().toISOString().slice(0,10)}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
-        function openAdminModal() {
-            document.getElementById('adminModal').classList.remove('hidden');
-        }
-
-        function closeAdminModal() {
-            document.getElementById('adminModal').classList.add('hidden');
-        }
-
-        async function handleAdminUpload(event) {
-            event.preventDefault();
-            const moduleId = parseInt(document.getElementById('adminModId').value);
-            const tag = document.getElementById('adminModTag').value;
-            const title = document.getElementById('adminModTitle').value;
-            const content = document.getElementById('adminModContent').value;
-
-            try {
-                await db.collection('modules').doc('mod_' + moduleId).set({
-                    moduleId: moduleId,
-                    tag: tag,
-                    title: title,
-                    content: content,
-                    quiz: []
-                }, { merge: true });
-
-                alert("Module uploaded and updated in Firestore successfully!");
-                closeAdminModal();
-                await fetchModulesFromFirebase();
-            } catch (err) {
-                alert("Upload Error: " + err.message);
-            }
+        async function logout() {
+            await auth.signOut();
+            window.location.reload();
         }
 
         function openCertificate() {
@@ -657,67 +520,6 @@
 
         function closeCertificate() {
             document.getElementById('certificateModal').classList.add('hidden');
-        }
-
-        async function openForumView() {
-            document.getElementById('lecturePanel').classList.add('hidden');
-            document.getElementById('forumPanel').classList.remove('hidden');
-            await loadForumMessages();
-        }
-
-        async function loadForumMessages() {
-            const feed = document.getElementById('forumMessagesFeed');
-            feed.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">Loading messages...</p>`;
-
-            try {
-                const snapshot = await db.collection('forum').orderBy('createdAt', 'desc').limit(30).get();
-                if (snapshot.empty) {
-                    feed.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">No messages yet. Be the first to share something!</p>`;
-                    return;
-                }
-
-                feed.innerHTML = '';
-                snapshot.forEach(doc => {
-                    const msg = doc.data();
-                    const msgDiv = document.createElement('div');
-                    msgDiv.className = 'bg-slate-50 border border-slate-200 p-4 rounded-xl space-y-1';
-                    msgDiv.innerHTML = `
-                        <div class="flex items-center justify-between text-[11px] text-slate-500 font-semibold">
-                            <span><i class="fa-solid fa-user text-purple-700 mr-1"></i> ${msg.senderName || 'Worker'}</span>
-                            <span>${msg.createdAt ? new Date(msg.createdAt.toDate()).toLocaleString() : 'Just now'}</span>
-                        </div>
-                        <p class="text-xs text-slate-800 whitespace-pre-line">${msg.message}</p>
-                    `;
-                    feed.appendChild(msgDiv);
-                });
-            } catch (err) {
-                feed.innerHTML = `<p class="text-xs text-red-500 text-center py-4">Error loading forum messages.</p>`;
-            }
-        }
-
-        async function postForumMessage(event) {
-            event.preventDefault();
-            const input = document.getElementById('forumInputMessage');
-            const message = input.value.trim();
-            if (!message) return;
-
-            try {
-                await db.collection('forum').add({
-                    senderName: workerFullName,
-                    senderEmail: auth.currentUser.email,
-                    message: message,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                input.value = '';
-                await loadForumMessages();
-            } catch (err) {
-                alert("Error posting message: " + err.message);
-            }
-        }
-
-        async function logout() {
-            await auth.signOut();
-            window.location.reload();
         }
     </script>
 </body>
