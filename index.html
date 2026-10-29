@@ -456,6 +456,74 @@
             }
         }
 
+        // Fetch and display all workers in the Admin Dashboard table
+        async function fetchWorkersData() {
+            const tableBody = document.getElementById('workersTableBody');
+            tableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-500">Loading worker records...</td></tr>`;
+
+            try {
+                const snapshot = await db.collection('users').get();
+                cachedWorkersData = [];
+                snapshot.forEach(doc => {
+                    cachedWorkersData.push({ id: doc.id, ...doc.data() });
+                });
+
+                if (cachedWorkersData.length === 0) {
+                    tableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-500">No worker records found.</td></tr>`;
+                    return;
+                }
+
+                tableBody.innerHTML = '';
+                cachedWorkersData.forEach((worker, index) => {
+                    const level = worker.highestCompletedModule || 1;
+                    const completedCount = level - 1;
+                    const status = completedCount >= 9 ? '<span class="text-emerald-600 font-bold">Completed</span>' : '<span class="text-amber-600 font-semibold">In Progress</span>';
+                    
+                    const row = document.createElement('tr');
+                    row.className = 'border-b border-slate-100 hover:bg-slate-50';
+                    row.innerHTML = `
+                        <td class="p-3">${index + 1}</td>
+                        <td class="p-3 font-semibold text-slate-900">${worker.fullName || 'N/A'}</td>
+                        <td class="p-3 text-slate-600">${worker.email || 'N/A'}</td>
+                        <td class="p-3">Level ${level} (of 9)</td>
+                        <td class="p-3">${status}</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            } catch (error) {
+                console.error("Error fetching workers:", error);
+                tableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-red-500">Error loading records: ${error.message}</td></tr>`;
+            }
+        }
+
+        // Download Worker Progress Report as CSV
+        function downloadWorkerReport() {
+            if (!cachedWorkersData || cachedWorkersData.length === 0) {
+                alert("No worker data available to download.");
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,S/N,Full Name,Email Address,Progress Level,Status\n";
+            
+            cachedWorkersData.forEach((worker, index) => {
+                const level = worker.highestCompletedModule || 1;
+                const completedCount = level - 1;
+                const status = completedCount >= 9 ? "Completed" : "In Progress";
+                const name = `"${(worker.fullName || 'N/A').replace(/"/g, '""')}"`;
+                const email = `"${(worker.email || 'N/A').replace(/"/g, '""')}"`;
+                
+                csvContent += `${index + 1},${name},${email},Level ${level},${status}\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "pdm_workers_progress_report.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
         function updateProgressUI() {
             const completedCount = highestCompletedModule - 1;
             const percentage = Math.round((completedCount / 9) * 100);
@@ -627,11 +695,16 @@
             auth.signOut();
         }
 
-        // Additional placeholder hooks for existing features to avoid missing function errors
+        // Modal Controls & Triggers
         function closeAdminModal() { document.getElementById('adminModal').classList.add('hidden'); }
         function openAdminModal() { document.getElementById('adminModal').classList.remove('hidden'); }
+        
         function closeDashboardModal() { document.getElementById('dashboardModal').classList.add('hidden'); }
-        function openDashboardModal() { document.getElementById('dashboardModal').classList.remove('hidden'); }
+        function openDashboardModal() { 
+            document.getElementById('dashboardModal').classList.remove('hidden');
+            fetchWorkersData(); // Automatically fetches worker records when dashboard opens
+        }
+
         function openCertificate() { document.getElementById('certificateModal').classList.remove('hidden'); }
         function closeCertificate() { document.getElementById('certificateModal').classList.add('hidden'); }
         function openForumView() { 
