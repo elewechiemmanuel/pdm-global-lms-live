@@ -702,10 +702,14 @@
         function closeDashboardModal() { document.getElementById('dashboardModal').classList.add('hidden'); }
         function openDashboardModal() { 
             document.getElementById('dashboardModal').classList.remove('hidden');
-            fetchWorkersData(); // Automatically fetches worker records when dashboard opens
+            fetchWorkersData(); 
         }
 
-        function openCertificate() { document.getElementById('certificateModal').classList.remove('hidden'); }
+        function openCertificate() { 
+            // Fixed: Dynamically displays the logged-in worker's name on the certificate
+            document.getElementById('certWorkerName').innerText = workerFullName || "Worker Name";
+            document.getElementById('certificateModal').classList.remove('hidden'); 
+        }
         function closeCertificate() { document.getElementById('certificateModal').classList.add('hidden'); }
         function openForumView() { 
             document.getElementById('lecturePanel').classList.add('hidden');
