@@ -16,6 +16,9 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
+    <!-- html2pdf.js for robust certificate PDF downloads -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
     <style>
         body { font-family: 'Inter', sans-serif; }
         .no-copy {
@@ -175,8 +178,8 @@
 
     <!-- Certificate Modal with Download Button -->
     <div id="certificateModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full p-8 border-8 border-purple-900 text-center space-y-6 relative">
-            <button onclick="closeCertificate()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark text-xl"></i></button>
+        <div id="certificateCard" class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full p-8 border-8 border-purple-900 text-center space-y-6 relative">
+            <button onclick="closeCertificate()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 print:hidden"><i class="fa-solid fa-xmark text-xl"></i></button>
             <div class="space-y-2">
                 <div class="text-purple-900 text-3xl"><i class="fa-solid fa-award"></i></div>
                 <h3 class="font-serif text-2xl font-bold text-purple-900 uppercase tracking-widest">Certificate of Completion</h3>
@@ -192,7 +195,7 @@
                     <p class="font-bold text-slate-800">Pastor Helen Olabiyi</p>
                     <p class="text-slate-500">Tutor</p>
                 </div>
-                <div class="flex gap-2">
+                <div class="flex gap-2 print:hidden">
                     <button onclick="window.print()" class="bg-slate-700 hover:bg-slate-800 text-white px-4 py-2.5 rounded-xl font-semibold shadow"><i class="fa-solid fa-print"></i> Print</button>
                     <button onclick="downloadCertificatePDF()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-semibold shadow flex items-center gap-1.5"><i class="fa-solid fa-download"></i> Download Certificate</button>
                 </div>
@@ -312,6 +315,10 @@
         </div>
     </main>
 
+    <footer class="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500">
+        <p>&copy; 2026 PDM Global Workers LMS &bull; All Rights Reserved.</p>
+    </footer>
+
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyA9oVYvQPO9EGbcxWNB2-kVRc3ftkBtI2Y",
@@ -409,6 +416,56 @@
             }
         }
 
+        function logout() {
+            auth.signOut().then(() => {
+                window.location.reload();
+            });
+        }
+
+        // Admin Course Upload Functions
+        function openAdminModal() {
+            document.getElementById('adminModal').classList.remove('hidden');
+        }
+
+        function closeAdminModal() {
+            document.getElementById('adminModal').classList.add('hidden');
+        }
+
+        async function handleAdminUpload(event) {
+            event.preventDefault();
+            const id = parseInt(document.getElementById('adminModId').value);
+            const tag = document.getElementById('adminModTag').value;
+            const title = document.getElementById('adminModTitle').value;
+            const content = document.getElementById('adminModContent').value;
+
+            try {
+                await db.collection('modules').doc('mod_' + id).set({
+                    id: id,
+                    tag: tag,
+                    title: title,
+                    content: content,
+                    quiz: [
+                        {
+                            question: "What is the primary spiritual focus of this module?",
+                            options: ["Living a holy and dedicated life", "Casual church attendance", "Financial gain", "Secular entertainment"],
+                            answer: 0
+                        },
+                        {
+                            question: "How should workers apply the teachings in daily service?",
+                            options: ["With diligence and integrity", "Only when supervised", "Whenever convenient", "None of the above"],
+                            answer: 0
+                        }
+                    ]
+                }, { merge: true });
+
+                alert("Module uploaded successfully to Firestore!");
+                closeAdminModal();
+                await fetchModulesFromFirebase();
+            } catch (err) {
+                alert("Error uploading module: " + err.message);
+            }
+        }
+
         // Admin Register Worker Functions
         function openAdminRegisterModal() {
             document.getElementById('adminRegisterModal').classList.remove('hidden');
@@ -428,7 +485,6 @@
             const password = document.getElementById('adminRegPassword').value;
 
             try {
-                // Secondary app instance prevents signing out the currently logged-in admin
                 const secondaryApp = firebase.initializeApp(firebaseConfig, "SecondaryApp");
                 const secondaryAuth = secondaryApp.auth();
 
@@ -437,7 +493,6 @@
 
                 await secondaryApp.delete();
 
-                // Safely creates or merges the user document without affecting other users
                 await db.collection('users').doc(uid).set({
                     email: email,
                     fullName: name,
@@ -447,7 +502,6 @@
 
                 alert(`Successfully registered ${name}! Their account is ready.`);
                 closeAdminRegisterModal();
-                
                 if (typeof fetchWorkersData === 'function') {
                     fetchWorkersData();
                 }
@@ -456,7 +510,15 @@
             }
         }
 
-        // Fetch and display all workers in the Admin Dashboard table
+        function openDashboardModal() {
+            document.getElementById('dashboardModal').classList.remove('hidden');
+            fetchWorkersData();
+        }
+
+        function closeDashboardModal() {
+            document.getElementById('dashboardModal').classList.add('hidden');
+        }
+
         async function fetchWorkersData() {
             const tableBody = document.getElementById('workersTableBody');
             tableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-500">Loading worker records...</td></tr>`;
@@ -491,12 +553,10 @@
                     tableBody.appendChild(row);
                 });
             } catch (error) {
-                console.error("Error fetching workers:", error);
                 tableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-red-500">Error loading records: ${error.message}</td></tr>`;
             }
         }
 
-        // Download Worker Progress Report as CSV
         function downloadWorkerReport() {
             if (!cachedWorkersData || cachedWorkersData.length === 0) {
                 alert("No worker data available to download.");
@@ -504,14 +564,12 @@
             }
 
             let csvContent = "data:text/csv;charset=utf-8,S/N,Full Name,Email Address,Progress Level,Status\n";
-            
             cachedWorkersData.forEach((worker, index) => {
                 const level = worker.highestCompletedModule || 1;
                 const completedCount = level - 1;
                 const status = completedCount >= 9 ? "Completed" : "In Progress";
                 const name = `"${(worker.fullName || 'N/A').replace(/"/g, '""')}"`;
                 const email = `"${(worker.email || 'N/A').replace(/"/g, '""')}"`;
-                
                 csvContent += `${index + 1},${name},${email},Level ${level},${status}\n`;
             });
 
@@ -524,196 +582,277 @@
             document.body.removeChild(link);
         }
 
-        function updateProgressUI() {
-            const completedCount = highestCompletedModule - 1;
-            const percentage = Math.round((completedCount / 9) * 100);
-            
-            document.getElementById('workerProgressTitle').innerText = `${workerFullName} — Level ${highestCompletedModule} of 9 Unlocked`;
-            document.getElementById('workerProgressSub').innerText = `Course Completion: ${percentage}% (${completedCount}/9 modules passed)`;
-            document.getElementById('progressBar').style.width = `${percentage}%`;
+        // Fetch modules from Firestore
+        async function fetchModulesFromFirebase() {
+            try {
+                const snapshot = await db.collection('modules').orderBy('id').get();
+                modulesData = [];
+                snapshot.forEach(doc => {
+                    modulesData.push(doc.data());
+                });
 
-            if (highestCompletedModule > 9) {
+                if (modulesData.length === 0) {
+                    // Fallback default modules if empty
+                    modulesData = [
+                        { id: 1, tag: "Week 1 • Module 1", title: "Introduction to Living Holiness", content: "Welcome to the Living Holiness Training Course. This foundational module covers the call to holy living and dedicated service in God's vineyard.", quiz: [{ question: "What is holiness?", options: ["Separation unto God", "Perfection", "Religious ritual", "None"], answer: 0 }] }
+                    ];
+                }
+
+                renderSidebar();
+                loadModule(currentModuleId);
+            } catch (err) {
+                console.error("Error fetching modules:", err);
+                document.getElementById('modContent').innerText = "Error loading course modules. Please check your network connection.";
+            }
+        }
+
+        function renderSidebar() {
+            const container = document.getElementById('sidebarModules');
+            container.innerHTML = '';
+
+            for (let i = 1; i <= 9; i++) {
+                const mod = modulesData.find(m => m.id === i) || { id: i, title: `Module ${i}`, tag: `Week ${i}` };
+                const isUnlocked = i <= highestCompletedModule;
+                const isCurrent = i === currentModuleId;
+
+                const btn = document.createElement('button');
+                btn.className = `w-full text-left p-3 rounded-xl text-xs font-semibold transition flex items-center justify-between ${
+                    isCurrent ? 'bg-purple-700 text-white shadow' :
+                    isUnlocked ? 'bg-slate-50 hover:bg-purple-50 text-slate-700 border border-slate-200' :
+                    'bg-slate-100 text-slate-400 cursor-not-allowed'
+                }`;
+                
+                btn.innerHTML = `
+                    <span class="truncate"><i class="fa-solid ${isUnlocked ? 'fa-book-open' : 'fa-lock'} mr-2"></i> ${i}. ${mod.title}</span>
+                    ${i < highestCompletedModule ? '<i class="fa-solid fa-circle-check text-emerald-500"></i>' : ''}
+                `;
+
+                if (isUnlocked) {
+                    btn.onclick = () => loadModule(i);
+                }
+                container.appendChild(btn);
+            }
+        }
+
+        function loadModule(id) {
+            currentModuleId = id;
+            document.getElementById('forumPanel').classList.add('hidden');
+            document.getElementById('lecturePanel').classList.remove('hidden');
+
+            const mod = modulesData.find(m => m.id === id) || { title: `Module ${id}`, tag: `Module ${id}`, content: "Content coming soon.", quiz: [] };
+            
+            document.getElementById('modTag').innerText = mod.tag || `Module ${id}`;
+            document.getElementById('modTitle').innerText = mod.title;
+            document.getElementById('modContent').innerHTML = mod.content;
+
+            renderQuiz(mod);
+            renderSidebar();
+        }
+
+        function renderQuiz(mod) {
+            const quizSection = document.getElementById('quizSection');
+            const quizContainer = document.getElementById('quizContainer');
+            document.getElementById('quizResult').innerHTML = '';
+
+            if (!mod.quiz || mod.quiz.length === 0) {
+                quizSection.classList.add('hidden');
+                return;
+            }
+
+            quizSection.classList.remove('hidden');
+            quizContainer.innerHTML = '';
+
+            mod.quiz.forEach((q, qIndex) => {
+                const qDiv = document.createElement('div');
+                qDiv.className = 'space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-200';
+                
+                let optionsHtml = '';
+                q.options.forEach((opt, optIndex) => {
+                    optionsHtml += `
+                        <label class="flex items-center space-x-3 text-xs text-slate-700 cursor-pointer">
+                            <input type="radio" name="q_${qIndex}" value="${optIndex}" class="text-purple-600 focus:ring-purple-500">
+                            <span>${opt}</span>
+                        </label>
+                    `;
+                });
+
+                qDiv.innerHTML = `
+                    <p class="font-bold text-xs text-slate-900">${qIndex + 1}. ${q.question}</p>
+                    <div class="space-y-1.5 pt-1">${optionsHtml}</div>
+                `;
+                quizContainer.appendChild(qDiv);
+            });
+        }
+
+        async function submitQuiz() {
+            const mod = modulesData.find(m => m.id === currentModuleId);
+            if (!mod || !mod.quiz) return;
+
+            let score = 0;
+            let total = mod.quiz.length;
+
+            mod.quiz.forEach((q, qIndex) => {
+                const selected = document.querySelector(`input[name="q_${qIndex}"]:checked`);
+                if (selected && parseInt(selected.value) === q.answer) {
+                    score++;
+                }
+            });
+
+            const percentage = (score / total) * 100;
+            const resultDiv = document.getElementById('quizResult');
+
+            if (percentage >= 60) {
+                resultDiv.innerHTML = `<span class="text-emerald-600">Passed! Score: ${score}/${total} (${percentage}%). Next module unlocked!</span>`;
+                
+                if (currentModuleId >= highestCompletedModule && currentModuleId < 9) {
+                    highestCompletedModule = currentModuleId + 1;
+                } else if (currentModuleId === 9) {
+                    highestCompletedModule = 10; // All completed
+                }
+
+                // Update in Firestore
+                const user = auth.currentUser;
+                if (user) {
+                    await db.collection('users').doc(user.uid).set({
+                        highestCompletedModule: highestCompletedModule
+                    }, { merge: true });
+                }
+
+                updateProgressUI();
+                renderSidebar();
+            } else {
+                resultDiv.innerHTML = `<span class="text-red-600">Score: ${score}/${total} (${percentage}%). You need at least 60% to advance. Please try again.</span>`;
+            }
+        }
+
+        function updateProgressUI() {
+            const completedCount = Math.min(highestCompletedModule - 1, 9);
+            const percent = (completedCount / 9) * 100;
+
+            document.getElementById('progressBar').style.width = `${percent}%`;
+            document.getElementById('workerProgressTitle').innerText = `${completedCount} of 9 Modules Completed (${Math.round(percent)}%)`;
+
+            if (completedCount >= 9) {
                 document.getElementById('certButtonContainer').classList.remove('hidden');
             } else {
                 document.getElementById('certButtonContainer').classList.add('hidden');
             }
         }
 
-        async function fetchModulesFromFirebase() {
-            try {
-                const snapshot = await db.collection('modules').orderBy('moduleId').get();
-                modulesData = [];
-                snapshot.forEach(doc => modulesData.push(doc.data()));
-
-                if (modulesData.length < 9) {
-                    await seedAllModules();
-                } else {
-                    renderSidebar();
-                    loadModule(currentModuleId);
-                }
-            } catch (err) {
-                console.error("Error fetching modules:", err);
-            }
+        function openCertificate() {
+            document.getElementById('certWorkerName').innerText = workerFullName || currentUserEmail;
+            document.getElementById('certificateModal').classList.remove('hidden');
         }
 
-        async function seedAllModules() {
-            const allModules = [
-                {
-                    moduleId: 1,
-                    tag: "Week 1 • Module 1",
-                    title: "The Call to Holiness",
-                    content: `
-                        <div class="bg-purple-50 border border-purple-200 p-5 rounded-2xl mb-6 shadow-sm">
-                            <h3 class="font-bold text-purple-900 text-base mb-2"><i class="fa-solid fa-book-open text-purple-700 mr-2"></i> Course Overview & Guidelines</h3>
-                            <p class="text-xs text-slate-700 mb-2">This course trains every PDM worker to live a holy life at home, at work and in service, in 9 modules over 3 weeks. Every teaching is grounded in Scripture.</p>
-                            <p class="text-xs text-slate-700"><strong>Pass mark:</strong> 60% (54/90).</p>
-                        </div>
-                        <strong>Memory Verse:</strong> "Because it is written, Be ye holy; for I am holy." - 1 Peter 1:16
-                    `,
-                    quiz: [
-                        { q: "Holiness simply means:", options: ["Never smiling", "Being separated from sin and set apart for God", "Wearing white", "Attending every service"], answer: 1 },
-                        { q: "True or False: Holiness is only required of pastors and ministers.", options: ["True", "False"], answer: 1 }
-                    ]
-                }
-            ];
-
-            for (let mod of allModules) {
-                await db.collection('modules').doc('mod_' + mod.moduleId).set(mod, { merge: true });
-            }
-            await fetchModulesFromFirebase();
+        function closeCertificate() {
+            document.getElementById('certificateModal').classList.add('hidden');
         }
 
-        function renderSidebar() {
-            const container = document.getElementById('sidebarModules');
-            container.innerHTML = '';
-            modulesData.forEach((mod) => {
-                const isUnlocked = mod.moduleId <= highestCompletedModule;
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.className = `w-full text-left p-3 rounded-xl text-xs font-semibold flex items-center justify-between transition ${
-                    isUnlocked 
-                        ? (mod.moduleId === currentModuleId ? 'bg-purple-900 text-white shadow' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 active:bg-slate-300')
-                        : 'bg-slate-50 text-slate-400 cursor-not-allowed'
-                }`;
-                btn.innerHTML = `<span><i class="fa-solid ${isUnlocked ? 'fa-book-open text-purple-300' : 'fa-lock text-slate-300'} mr-2"></i> ${mod.tag}: ${mod.title}</span>`;
-                
-                if (isUnlocked) {
-                    const handleSelect = (e) => {
-                        e.preventDefault();
-                        loadModule(mod.moduleId);
-                    };
-                    btn.addEventListener('click', handleSelect);
-                    btn.addEventListener('touchend', handleSelect);
-                }
-                container.appendChild(btn);
+        // FIXED Certificate Download PDF using html2pdf.js
+        function downloadCertificatePDF() {
+            const element = document.getElementById('certificateCard');
+            const opt = {
+                margin:       10,
+                filename:     'PDM_Global_Workers_Certificate.pdf',
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' }
+            };
+
+            html2pdf().from(element).set(opt).save().catch(err => {
+                console.error("PDF download error:", err);
+                alert("Could not generate PDF. You can use the Print button instead.");
             });
         }
 
-        function loadModule(id) {
-            currentModuleId = id;
-            const mod = modulesData.find(m => m.moduleId === id);
-            if (!mod) return;
-
-            document.getElementById('modTag').innerText = mod.tag;
-            document.getElementById('modTitle').innerText = mod.title;
-            document.getElementById('modContent').innerHTML = mod.content;
-            
-            renderSidebar();
-            renderQuiz(mod.quiz);
-
-            document.getElementById('lecturePanel').classList.remove('hidden');
-            document.getElementById('forumPanel').classList.add('hidden');
-        }
-
-        function renderQuiz(quizArray) {
-            const container = document.getElementById('quizContainer');
-            container.innerHTML = '';
-            
-            if (!quizArray || quizArray.length === 0) {
-                document.getElementById('quizSection').classList.add('hidden');
-                return;
-            }
-
-            document.getElementById('quizSection').classList.remove('hidden');
-            document.getElementById('quizResult').innerHTML = '';
-
-            quizArray.forEach((q, qIdx) => {
-                const qDiv = document.createElement('div');
-                qDiv.className = 'space-y-2';
-                
-                let optionsHtml = '';
-                q.options.forEach((opt, oIdx) => {
-                    optionsHtml += `
-                        <label class="flex items-center space-x-3 text-xs text-slate-700 cursor-pointer bg-slate-50 p-2.5 rounded-xl border border-slate-200 hover:bg-slate-100">
-                            <input type="radio" name="q_${qIdx}" value="${oIdx}" class="text-purple-600 focus:ring-purple-500">
-                            <span>${opt}</span>
-                        </label>
-                    `;
-                });
-
-                qDiv.innerHTML = `<p class="font-semibold text-xs text-slate-900">${qIdx + 1}. ${q.q}</p><div class="space-y-1.5">${optionsHtml}</div>`;
-                container.appendChild(qDiv);
-            });
-        }
-
-        async function submitQuiz() {
-            const mod = modulesData.find(m => m.moduleId === currentModuleId);
-            if (!mod || !mod.quiz) return;
-
-            let score = 0;
-            let total = mod.quiz.length;
-
-            mod.quiz.forEach((q, qIdx) => {
-                const selected = document.querySelector(`input[name="q_${qIdx}"]:checked`);
-                if (selected && parseInt(selected.value) === q.answer) {
-                    score++;
-                }
-            });
-
-            const percentage = Math.round((score / total) * 100);
-            const resultDiv = document.getElementById('quizResult');
-
-            if (percentage >= 60) {
-                resultDiv.innerHTML = `<span class="text-emerald-600">Passed (${score}/${total})! Unlocking next module...</span>`;
-                if (currentModuleId >= highestCompletedModule) {
-                    highestCompletedModule = currentModuleId + 1;
-                    const user = auth.currentUser;
-                    if (user) {
-                        await db.collection('users').doc(user.uid).update({
-                            highestCompletedModule: highestCompletedModule
-                        });
-                    }
-                    updateProgressUI();
-                    renderSidebar();
-                }
-            } else {
-                resultDiv.innerHTML = `<span class="text-red-600">Score: ${score}/${total} (${percentage}%). You need at least 60% to pass. Please review and try again.</span>`;
-            }
-        }
-
-        function logout() {
-            auth.signOut();
-        }
-
-        // Modal Controls & Triggers
-        function closeAdminModal() { document.getElementById('adminModal').classList.add('hidden'); }
-        function openAdminModal() { document.getElementById('adminModal').classList.remove('hidden'); }
-        
-        function closeDashboardModal() { document.getElementById('dashboardModal').classList.add('hidden'); }
-        function openDashboardModal() { 
-            document.getElementById('dashboardModal').classList.remove('hidden');
-            fetchWorkersData(); 
-        }
-
-        function openCertificate() { 
-            // Fixed: Dynamically displays the logged-in worker's name on the certificate
-            document.getElementById('certWorkerName').innerText = workerFullName || "Worker Name";
-            document.getElementById('certificateModal').classList.remove('hidden'); 
-        }
-        function closeCertificate() { document.getElementById('certificateModal').classList.add('hidden'); }
-        function openForumView() { 
+        // Forum Functions
+        function openForumView() {
             document.getElementById('lecturePanel').classList.add('hidden');
             document.getElementById('forumPanel').classList.remove('hidden');
+            loadForumMessages();
+        }
+
+        function insertEmoji(emoji, inputId) {
+            const input = document.getElementById(inputId);
+            input.value += emoji;
+            input.focus();
+        }
+
+        async function postForumMessage(event) {
+            event.preventDefault();
+            const msgInput = document.getElementById('forumInputMessage');
+            const message = msgInput.value.trim();
+            if (!message) return;
+
+            try {
+                await db.collection('forum').add({
+                    senderName: workerFullName || currentUserEmail,
+                    senderEmail: currentUserEmail,
+                    message: message,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    likes: []
+                });
+                msgInput.value = '';
+                loadForumMessages();
+            } catch (err) {
+                alert("Error posting message: " + err.message);
+            }
+        }
+
+        async function loadForumMessages() {
+            const feed = document.getElementById('forumMessagesFeed');
+            feed.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">Loading community messages...</p>`;
+
+            try {
+                const snapshot = await db.collection('forum').orderBy('createdAt', 'desc').get();
+                if (snapshot.empty) {
+                    feed.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">No discussions yet. Be the first to share a message!</p>`;
+                    return;
+                }
+
+                feed.innerHTML = '';
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const docId = doc.id;
+                    const dateStr = data.createdAt ? data.createdAt.toDate().toLocaleString() : 'Just now';
+                    const likesCount = data.likes ? data.likes.length : 0;
+                    const hasLiked = data.likes && data.likes.includes(currentUserEmail);
+
+                    const card = document.createElement('div');
+                    card.className = 'bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2';
+                    card.innerHTML = `
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="font-bold text-slate-950">${data.senderName}</span>
+                            <span class="text-slate-400 text-[10px]">${dateStr}</span>
+                        </div>
+                        <p class="text-xs text-slate-700 whitespace-pre-line">${data.message}</p>
+                        <div class="flex items-center gap-4 pt-2 text-xs">
+                            <button onclick="toggleLike('${docId}')" class="flex items-center gap-1.5 font-semibold ${hasLiked ? 'text-purple-700' : 'text-slate-500 hover:text-purple-700'}">
+                                <i class="fa-solid fa-heart"></i> <span>${likesCount} Likes</span>
+                            </button>
+                        </div>
+                    `;
+                    feed.appendChild(card);
+                });
+            } catch (err) {
+                feed.innerHTML = `<p class="text-xs text-red-500 text-center py-4">Error loading forum: ${err.message}</p>`;
+            }
+        }
+
+        async function toggleLike(docId) {
+            const docRef = db.collection('forum').doc(docId);
+            const doc = await docRef.get();
+            if (!doc.exists) return;
+
+            let likes = doc.data().likes || [];
+            if (likes.includes(currentUserEmail)) {
+                likes = likes.filter(email => email !== currentUserEmail);
+            } else {
+                likes.push(currentUserEmail);
+            }
+
+            await docRef.update({ likes: likes });
+            loadForumMessages();
         }
     </script>
 </body>
