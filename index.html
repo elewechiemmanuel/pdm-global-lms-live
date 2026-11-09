@@ -878,16 +878,17 @@
                 const name = `"${(worker.fullName || '').replace(/"/g, '""')}"`;
                 const email = `"${(worker.email || '').replace(/"/g, '""')}"`;
                 
-                const certId = isCompleted && worker.id ? `PDM-LMS-2026-${worker.id.substring(0, 6).toUpperCase()}` : 'N/A';
+                const docId = worker.id || worker.email || 'WORKER';
+                const certId = isCompleted ? `PDM-LMS-2026-${docId.substring(0, 6).toUpperCase()}` : 'N/A';
                 
-                let completionDateStr = 'N/A';
+                let completionDateStr = '"N/A"';
                 if (isCompleted && worker.completedAt && worker.completedAt.toDate) {
                     completionDateStr = `"${worker.completedAt.toDate().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}"`;
                 } else if (isCompleted) {
                     completionDateStr = '"Completed"';
                 }
 
-                csvContent += `${index + 1},${name},${email},Module ${Math.min(level, 9)},${status},${certId},${completionDateStr}\n`;
+                csvContent += `${index + 1},${name},${email},Module ${Math.min(level, 9)},${status},"${certId}",${completionDateStr}\n`;
             });
 
             const encodedUri = encodeURI(csvContent);
