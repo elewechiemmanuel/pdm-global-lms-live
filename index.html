@@ -141,7 +141,7 @@
         </div>
     </div>
 
-    <!-- Admin Worker Progress Dashboard Modal -->
+    <!-- Admin Worker Dashboard Modal -->
     <div id="dashboardModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full overflow-hidden border border-slate-200 max-h-[90vh] flex flex-col">
             <div class="bg-purple-900 text-white px-6 py-4 flex items-center justify-between">
@@ -347,17 +347,20 @@
 
         auth.onAuthStateChanged(async (user) => {
             if (user) {
-                currentUserEmail = user.email;
-                const userDocRef = db.collection('users').doc(user.uid);
-                const userDoc = await userDocRef.get();
-                
-                if (userDoc.exists) {
-                    const data = userDoc.data();
-                    workerFullName = data.fullName || user.email;
-                    highestCompletedModule = data.highestCompletedModule || 1;
-                    userCompletionDate = data.completedAt || null;
-                } else {
-                    workerFullName = user.email;
+                currentUserEmail = user.email || "";
+                workerFullName = user.email || "";
+
+                try {
+                    const userDocRef = db.collection('users').doc(user.uid);
+                    const userDoc = await userDocRef.get();
+                    if (userDoc.exists) {
+                        const data = userDoc.data();
+                        workerFullName = data.fullName || user.email;
+                        highestCompletedModule = data.highestCompletedModule || 1;
+                        userCompletionDate = data.completedAt || null;
+                    }
+                } catch (err) {
+                    console.warn("Could not fetch user profile from Firestore:", err);
                 }
 
                 document.getElementById('authModal').classList.add('hidden');
@@ -466,6 +469,7 @@
                 renderSidebar();
                 loadModule(currentModuleId);
             } catch (e) {
+                console.warn("Could not fetch modules from Firestore, loading defaults:", e);
                 modulesData = getFallbackModules();
                 renderSidebar();
                 loadModule(currentModuleId);
@@ -474,7 +478,7 @@
 
         function getFallbackModules() {
             return [
-                { id: 1, tag: "Week 1 • Module 1", title: "Living Holiness Introduction", content: "<p>Welcome to the PDM Global Workers training course. Holiness is a lifestyle...</p>" }
+                { id: 1, tag: "Week 1 • Module 1", title: "Living Holiness Introduction", content: "<p class='mb-4'>Welcome to the PDM Global Workers training course. Holiness is a lifestyle...</p><p>Please use the Admin Upload portal to populate course content and tests into Firestore.</p>" }
             ];
         }
 
@@ -584,11 +588,15 @@
                     highestCompletedModule = currentModuleId + 1;
                     const user = auth.currentUser;
                     if (user) {
-                        const updatePayload = { highestCompletedModule: highestCompletedModule };
-                        if (highestCompletedModule > 9 && !userCompletionDate) {
-                            updatePayload.completedAt = firebase.firestore.FieldValue.serverTimestamp();
+                        try {
+                            const updatePayload = { highestCompletedModule: highestCompletedModule };
+                            if (highestCompletedModule > 9 && !userCompletionDate) {
+                                updatePayload.completedAt = firebase.firestore.FieldValue.serverTimestamp();
+                            }
+                            await db.collection('users').doc(user.uid).set(updatePayload, { merge: true });
+                        } catch (e) {
+                            console.warn("Could not save progress to Firestore:", e);
                         }
-                        await db.collection('users').doc(user.uid).set(updatePayload, { merge: true });
                     }
                 }
                 updateProgressUI();
@@ -630,7 +638,7 @@
             const element = document.getElementById('certificateCard');
             const opt = {
                 margin: 0.5,
-                filename: `Certificate_${workerFullName.replace(/\s+/g, '_')}.pdf`,
+                filename: `Certificate_${(workerFullName || 'Worker').replace(/\s+/g, '_')}.pdf`,
                 image: { type: 'jpeg', quality: 0.98 },
                 html2canvas: { scale: 2 },
                 jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' }
