@@ -141,7 +141,7 @@
         </div>
     </div>
 
-    <!-- Admin Worker Progress Dashboard Modal with Download Button -->
+    <!-- Admin Worker Progress Dashboard Modal -->
     <div id="dashboardModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full overflow-hidden border border-slate-200 max-h-[90vh] flex flex-col">
             <div class="bg-purple-900 text-white px-6 py-4 flex items-center justify-between">
@@ -176,7 +176,7 @@
         </div>
     </div>
 
-    <!-- Enhanced Certificate Modal with Certificate #, Date, & Gold Seal -->
+    <!-- Certificate Modal with Certificate #, Date, & Gold Seal -->
     <div id="certificateModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
         <div id="certificateCard" class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full p-8 border-8 border-purple-900 text-center space-y-6 relative">
             <button onclick="closeCertificate()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 print:hidden"><i class="fa-solid fa-xmark text-xl"></i></button>
@@ -193,7 +193,6 @@
                 <p class="text-xs text-slate-600 max-w-md mx-auto pt-2">For successfully completing all 9 modules and passing the final requirements of the Living Holiness Workers' Training Course.</p>
             </div>
 
-            <!-- Enhanced Details Row (Certificate No, Seal, Date & Tutor Signature) -->
             <div class="grid grid-cols-3 items-center pt-4 border-t border-slate-200 text-xs">
                 <div class="text-left space-y-1">
                     <p class="text-[10px] uppercase font-bold text-slate-400">Certificate Details</p>
@@ -201,7 +200,6 @@
                     <p class="text-[11px] text-slate-500">Date: <span id="certDate">--/--/----</span></p>
                 </div>
 
-                <!-- Official Graphical Seal -->
                 <div class="flex justify-center">
                     <div class="w-16 h-16 rounded-full bg-gradient-to-tr from-amber-600 via-amber-400 to-yellow-200 p-1 shadow-lg border-2 border-amber-600 flex items-center justify-center">
                         <div class="w-full h-full rounded-full border border-dashed border-amber-800 bg-purple-950 flex flex-col items-center justify-center text-amber-300 text-center leading-none">
@@ -807,7 +805,6 @@
 
             certWorkerName.innerText = workerFullName || currentUserEmail;
             
-            // Generate deterministic certificate number based on email string code
             let hash = 0;
             for (let i = 0; i < currentUserEmail.length; i++) {
                 hash = ((hash << 5) - hash) + currentUserEmail.charCodeAt(i);
@@ -816,7 +813,6 @@
             const uniqueCode = Math.abs(hash).toString().padStart(6, '0').slice(-4);
             certNumber.innerText = `PDM-LH-2026-${uniqueCode}`;
 
-            // Format current date
             const today = new Date();
             const formattedDate = today.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
             certDate.innerText = formattedDate;
@@ -840,7 +836,6 @@
             html2pdf().set(options).from(element).save();
         }
 
-        // Discussion Forum Functionality
         function openForumView() {
             document.getElementById('lecturePanel').classList.add('hidden');
             document.getElementById('forumPanel').classList.remove('hidden');
@@ -865,8 +860,7 @@
                     authorName: workerFullName || currentUserEmail,
                     authorEmail: currentUserEmail,
                     message: messageText,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    reactions: { pray: 0, fire: 0, heart: 0 }
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 document.getElementById('forumInputMessage').value = '';
                 fetchForumMessages();
