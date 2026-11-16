@@ -516,68 +516,64 @@
                             : 'bg-slate-100 text-slate-400 cursor-not-allowed'
                 }`;
                 
-                btn.onclick = () => {
-                    if (isUnlocked) {
-                        currentModuleId = mod.id;
-                        renderSidebar();
-                        loadModule(mod.id);
-                    }
-                };
-
                 btn.innerHTML = `
-                    <span class="truncate">${mod.tag}: ${mod.title}</span>
-                    <i class="fa-solid ${isUnlocked ? (mod.id < highestCompletedModule ? 'fa-circle-check text-emerald-500' : 'fa-lock-open') : 'fa-lock'}"></i>
+                    <span>${mod.tag || 'Module ' + mod.id}: ${mod.title}</span>
+                    <i class="fa-solid ${isUnlocked ? (mod.id < highestCompletedModule ? 'fa-check text-emerald-600' : 'fa-arrow-right') : 'fa-lock'}"></i>
                 `;
+
+                if (isUnlocked) {
+                    btn.onclick = () => loadModule(mod.id);
+                } else {
+                    btn.onclick = (e) => {
+                        e.preventDefault();
+                        alert("Please complete the preceding module test to unlock this module.");
+                    };
+                }
 
                 container.appendChild(btn);
             });
         }
 
-        function loadModule(id) {
+        function loadModule(modId) {
+            currentModuleId = modId;
+            renderSidebar();
+
             document.getElementById('forumPanel').classList.add('hidden');
             document.getElementById('lecturePanel').classList.remove('hidden');
 
-            const mod = modulesData.find(m => m.id === id) || modulesData[0];
+            const mod = modulesData.find(m => m.id === modId);
+            if (!mod) return;
+
             document.getElementById('modTag').innerText = mod.tag || `Module ${mod.id}`;
-            document.getElementById('modTitle').innerText = mod.title || `Module ${mod.id}`;
-            document.getElementById('modContent').innerHTML = mod.content || `<p>Module content loading...</p>`;
+            document.getElementById('modTitle').innerText = mod.title;
+            document.getElementById('modContent').innerHTML = mod.content;
 
-            renderQuiz(mod);
-        }
-
-        function renderQuiz(mod) {
-            const quizSection = document.getElementById('quizSection');
+            const quizSec = document.getElementById('quizSection');
             const quizContainer = document.getElementById('quizContainer');
+            quizContainer.innerHTML = '';
             document.getElementById('quizResult').innerText = '';
 
-            if (!mod.quiz || mod.quiz.length === 0) {
-                quizSection.classList.add('hidden');
-                return;
-            }
-
-            quizSection.classList.remove('hidden');
-            quizContainer.innerHTML = '';
-
-            mod.quiz.forEach((q, qIndex) => {
-                const qDiv = document.createElement('div');
-                qDiv.className = 'space-y-2';
-                
-                let optionsHtml = '';
-                q.options.forEach((opt, optIndex) => {
-                    optionsHtml += `
-                        <label class="flex items-center space-x-2 text-xs bg-slate-50 p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-100">
-                            <input type="radio" name="q_${qIndex}" value="${optIndex}" class="text-purple-600 focus:ring-purple-500">
-                            <span>${opt}</span>
-                        </label>
+            if (mod.quiz && mod.quiz.length > 0) {
+                quizSec.classList.remove('hidden');
+                mod.quiz.forEach((q, qIndex) => {
+                    const qDiv = document.createElement('div');
+                    qDiv.className = 'space-y-2';
+                    qDiv.innerHTML = `
+                        <p class="font-semibold text-xs text-slate-800">Q${qIndex + 1}: ${q.question}</p>
+                        <div class="space-y-1 pl-2">
+                            ${q.options.map((opt, optIdx) => `
+                                <label class="flex items-center gap-2 text-xs cursor-pointer">
+                                    <input type="radio" name="question_${qIndex}" value="${optIdx}" class="text-purple-700">
+                                    <span>${opt}</span>
+                                </label>
+                            `).join('')}
+                        </div>
                     `;
+                    quizContainer.appendChild(qDiv);
                 });
-
-                qDiv.innerHTML = `
-                    <p class="font-semibold text-xs text-slate-800">${qIndex + 1}. ${q.question}</p>
-                    <div class="space-y-1">${optionsHtml}</div>
-                `;
-                quizContainer.appendChild(qDiv);
-            });
+            } else {
+                quizSec.classList.add('hidden');
+            }
         }
 
         async function submitQuiz() {
@@ -585,156 +581,86 @@
             if (!mod || !mod.quiz) return;
 
             let score = 0;
-            let total = mod.quiz.length;
-
-            for (let i = 0; i < total; i++) {
-                const selected = document.querySelector(`input[name="q_${i}"]:checked`);
-                if (selected && parseInt(selected.value) === mod.quiz[i].answer) {
+            mod.quiz.forEach((q, qIndex) => {
+                const selected = document.querySelector(`input[name="question_${qIndex}"]:checked`);
+                if (selected && parseInt(selected.value) === q.answer) {
                     score++;
                 }
-            }
+            });
 
-            const percentage = (score / total) * 100;
-            const quizResult = document.getElementById('quizResult');
+            const percentage = (score / mod.quiz.length) * 100;
+            const resDiv = document.getElementById('quizResult');
 
             if (percentage >= 60) {
-                quizResult.className = "mt-4 font-bold text-sm text-emerald-600";
-                quizResult.innerText = `Passed! Score: ${score}/${total} (${percentage}%). Unlocking next module...`;
-                
+                resDiv.className = 'mt-4 font-bold text-sm text-emerald-600';
+                resDiv.innerText = `Passed! Score: ${score}/${mod.quiz.length} (${percentage.toFixed(0)}%)`;
+
                 if (currentModuleId >= highestCompletedModule) {
                     highestCompletedModule = currentModuleId + 1;
                     const user = auth.currentUser;
                     if (user) {
                         try {
-                            const updatePayload = { highestCompletedModule: highestCompletedModule };
-                            if (highestCompletedModule > 9 && !userCompletionDate) {
-                                updatePayload.completedAt = firebase.firestore.FieldValue.serverTimestamp();
-                                userCompletionDate = { toDate: () => new Date() };
-                            }
-                            await db.collection('users').doc(user.uid).set(updatePayload, { merge: true });
+                            await db.collection('users').doc(user.uid).update({
+                                highestCompletedModule: highestCompletedModule
+                            });
                         } catch (e) {
-                            console.warn("Could not save progress to Firestore:", e);
+                            console.error("Error saving progress:", e);
                         }
                     }
+                    updateProgressUI();
                 }
-                updateProgressUI();
                 renderSidebar();
             } else {
-                quizResult.className = "mt-4 font-bold text-sm text-rose-600";
-                quizResult.innerText = `Score: ${score}/${total} (${percentage}%). You need at least 60% to pass. Please try again.`;
+                resDiv.className = 'mt-4 font-bold text-sm text-rose-600';
+                resDiv.innerText = `Failed. Score: ${score}/${mod.quiz.length} (${percentage.toFixed(0)}%). You need at least 60% to advance.`;
             }
         }
 
-        async function openCertificate() {
-            const certWorkerName = document.getElementById('certWorkerName');
-            const certIdNumber = document.getElementById('certIdNumber');
-            const certCompletionDate = document.getElementById('certCompletionDate');
+        async function openDashboardModal() {
+            document.getElementById('dashboardModal').classList.remove('hidden');
+            const tbody = document.getElementById('workersTableBody');
+            tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-500">Loading records...</td></tr>';
 
-            if (certWorkerName) certWorkerName.innerText = workerFullName || currentUserEmail;
-            
-            const currentUser = auth.currentUser;
-            const uniqueCode = currentUser ? currentUser.uid.substring(0, 6).toUpperCase() : 'WORKER';
-            if (certIdNumber) certIdNumber.innerText = `PDM-LMS-2026-${uniqueCode}`;
+            try {
+                const snapshot = await db.collection('users').get();
+                cachedWorkersData = [];
+                snapshot.forEach(doc => {
+                    cachedWorkersData.push(doc.data());
+                });
 
-            const options = { year: 'numeric', month: 'long', day: 'numeric' };
-            let dateStr = "";
-            if (userCompletionDate && userCompletionDate.toDate) {
-                dateStr = userCompletionDate.toDate().toLocaleDateString('en-US', options);
-            } else {
-                dateStr = new Date().toLocaleDateString('en-US', options);
+                tbody.innerHTML = '';
+                cachedWorkersData.forEach((w, idx) => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'border-b hover:bg-slate-50';
+                    tr.innerHTML = `
+                        <td class="p-3">${idx + 1}</td>
+                        <td class="p-3 font-semibold">${w.fullName || 'N/A'}</td>
+                        <td class="p-3 text-slate-600">${w.email}</td>
+                        <td class="p-3">Module ${w.highestCompletedModule || 1} of 9</td>
+                        <td class="p-3">
+                            <span class="px-2 py-1 rounded-full text-[10px] font-bold ${w.highestCompletedModule > 9 ? 'bg-emerald-100 text-emerald-800' : 'bg-purple-100 text-purple-800'}">
+                                ${w.highestCompletedModule > 9 ? 'Completed' : 'In Progress'}
+                            </span>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (err) {
+                tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-rose-500">Error loading worker list.</td></tr>';
             }
-            if (certCompletionDate) certCompletionDate.innerText = dateStr;
-
-            document.getElementById('certificateModal').classList.remove('hidden');
         }
 
-        function closeCertificate() {
-            document.getElementById('certificateModal').classList.add('hidden');
-        }
-
-        function downloadCertificatePDF() {
-            const element = document.getElementById('certificateCard');
-            const opt = {
-                margin: 0.5,
-                filename: `Certificate_${(workerFullName || 'Worker').replace(/\s+/g, '_')}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2 },
-                jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' }
-            };
-            html2pdf().set(opt).from(element).save();
-        }
-
+        function closeDashboardModal() { document.getElementById('dashboardModal').classList.add('hidden'); }
+        function openAdminModal() { document.getElementById('adminModal').classList.remove('hidden'); }
+        function closeAdminModal() { document.getElementById('adminModal').classList.add('hidden'); }
+        function openAdminRegisterModal() { document.getElementById('adminRegisterModal').classList.remove('hidden'); }
+        function closeAdminRegisterModal() { document.getElementById('adminRegisterModal').classList.add('hidden'); }
+        function openCertificate() { document.getElementById('certificateModal').classList.remove('hidden'); }
+        function closeCertificate() { document.getElementById('certificateModal').classList.add('hidden'); }
         function openForumView() {
             document.getElementById('lecturePanel').classList.add('hidden');
             document.getElementById('forumPanel').classList.remove('hidden');
             loadForumMessages();
-        }
-
-        async function loadForumMessages() {
-            const feed = document.getElementById('forumMessagesFeed');
-            feed.innerHTML = '<p class="text-xs text-slate-500 text-center py-4">Loading community messages...</p>';
-
-            try {
-                const snapshot = await db.collection('forum').orderBy('timestamp', 'desc').limit(20).get();
-                if (snapshot.empty) {
-                    feed.innerHTML = '<p class="text-xs text-slate-500 text-center py-4">No discussions yet. Be the first to start a conversation!</p>';
-                    return;
-                }
-
-                feed.innerHTML = '';
-                snapshot.forEach(doc => {
-                    const msg = doc.data();
-                    const date = msg.timestamp ? msg.timestamp.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now';
-                    
-                    const msgDiv = document.createElement('div');
-                    msgDiv.className = 'bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2';
-                    msgDiv.innerHTML = `
-                        <div class="flex justify-between items-center text-xs">
-                            <span class="font-bold text-purple-900">${msg.author || 'Anonymous'}</span>
-                            <span class="text-slate-400">${date}</span>
-                        </div>
-                        <p class="text-xs text-slate-700">${msg.text}</p>
-                    `;
-                    feed.appendChild(msgDiv);
-                });
-            } catch (e) {
-                feed.innerHTML = '<p class="text-xs text-slate-500 text-center py-4">Unable to load messages.</p>';
-            }
-        }
-
-        async function postForumMessage(event) {
-            event.preventDefault();
-            const textarea = document.getElementById('forumInputMessage');
-            const text = textarea.value.trim();
-            if (!text) return;
-
-            try {
-                await db.collection('forum').add({
-                    author: workerFullName || currentUserEmail,
-                    text: text,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                textarea.value = '';
-                loadForumMessages();
-            } catch (e) {
-                alert("Could not post message: " + e.message);
-            }
-        }
-
-        function insertEmoji(emoji, targetId) {
-            const input = document.getElementById(targetId);
-            if (input) {
-                input.value += emoji;
-                input.focus();
-            }
-        }
-
-        function openAdminModal() {
-            document.getElementById('adminModal').classList.remove('hidden');
-        }
-
-        function closeAdminModal() {
-            document.getElementById('adminModal').classList.add('hidden');
         }
 
         async function handleAdminUpload(event) {
@@ -745,159 +671,118 @@
             const content = document.getElementById('adminModContent').value;
 
             try {
-                await db.collection('modules').doc('mod_' + id).set({
+                await db.collection('modules').doc(`mod_${id}`).set({
                     id: id,
                     tag: tag,
                     title: title,
                     content: content,
                     quiz: [
-                        {
-                            question: "What is the primary spiritual focus of this module?",
-                            options: ["Living a holy and dedicated life", "Casual church attendance", "Financial gain", "Secular entertainment"],
-                            answer: 0
-                        },
-                        {
-                            question: "How should workers apply the teachings in daily service?",
-                            options: ["With diligence and integrity", "Only when supervised", "Whenever convenient", "None of the above"],
-                            answer: 0
-                        }
+                        { question: "Is this a sample quiz question?", options: ["Yes", "No"], answer: 0 }
                     ]
-                }, { merge: true });
-
-                alert("Module uploaded successfully to Firestore!");
+                });
+                alert("Module uploaded to Firestore successfully!");
                 closeAdminModal();
-                await fetchModulesFromFirebase();
+                fetchModulesFromFirebase();
             } catch (err) {
                 alert("Error uploading module: " + err.message);
             }
         }
 
-        function openAdminRegisterModal() {
-            document.getElementById('adminRegisterModal').classList.remove('hidden');
-        }
-
-        function closeAdminRegisterModal() {
-            document.getElementById('adminRegisterModal').classList.add('hidden');
-            document.getElementById('adminRegName').value = '';
-            document.getElementById('adminRegEmail').value = '';
-            document.getElementById('adminRegPassword').value = '';
-        }
-
         async function handleAdminRegisterUser(event) {
             event.preventDefault();
-            const name = document.getElementById('adminRegName').value.trim();
-            const email = document.getElementById('adminRegEmail').value.trim();
+            const name = document.getElementById('adminRegName').value;
+            const email = document.getElementById('adminRegEmail').value;
             const password = document.getElementById('adminRegPassword').value;
 
             try {
-                const secondaryApp = firebase.initializeApp(firebaseConfig, "SecondaryApp");
-                const secondaryAuth = secondaryApp.auth();
-
-                const userCredential = await secondaryAuth.createUserWithEmailAndPassword(email, password);
-                const uid = userCredential.user.uid;
-
-                await secondaryApp.delete();
-
-                await db.collection('users').doc(uid).set({
+                const cred = await auth.createUserWithEmailAndPassword(email, password);
+                await db.collection('users').doc(cred.user.uid).set({
                     email: email,
                     fullName: name,
                     highestCompletedModule: 1,
                     registeredAt: firebase.firestore.FieldValue.serverTimestamp()
-                }, { merge: true });
-
-                alert(`Successfully registered ${name}! Their account is ready.`);
+                });
+                alert("Worker account successfully created!");
                 closeAdminRegisterModal();
-                if (typeof fetchWorkersData === 'function') {
-                    fetchWorkersData();
-                }
-            } catch (error) {
-                alert("Error registering user: " + error.message);
-            }
-        }
-
-        function openDashboardModal() {
-            document.getElementById('dashboardModal').classList.remove('hidden');
-            fetchWorkersData();
-        }
-
-        function closeDashboardModal() {
-            document.getElementById('dashboardModal').classList.add('hidden');
-        }
-
-        async function fetchWorkersData() {
-            const tableBody = document.getElementById('workersTableBody');
-            tableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-500">Loading worker records...</td></tr>`;
-
-            try {
-                const snapshot = await db.collection('users').get();
-                cachedWorkersData = [];
-                snapshot.forEach(doc => {
-                    cachedWorkersData.push({ id: doc.id, ...doc.data() });
-                });
-
-                if (cachedWorkersData.length === 0) {
-                    tableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-500">No worker records found.</td></tr>`;
-                    return;
-                }
-
-                tableBody.innerHTML = '';
-                cachedWorkersData.forEach((worker, index) => {
-                    const level = worker.highestCompletedModule || 1;
-                    const status = level > 9 ? 'Completed' : 'In Progress';
-                    const badgeClass = level > 9 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800';
-
-                    const row = document.createElement('tr');
-                    row.className = 'border-b border-slate-100 hover:bg-slate-50';
-                    row.innerHTML = `
-                        <td class="p-3 font-semibold text-slate-600">${index + 1}</td>
-                        <td class="p-3 font-bold text-slate-800">${worker.fullName || 'N/A'}</td>
-                        <td class="p-3 text-slate-600">${worker.email || 'N/A'}</td>
-                        <td class="p-3 text-slate-700 font-semibold">Module ${Math.min(level, 9)} / 9</td>
-                        <td class="p-3"><span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${badgeClass}">${status}</span></td>
-                    `;
-                    tableBody.appendChild(row);
-                });
             } catch (err) {
-                tableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-rose-600">Error loading data: ${err.message}</td></tr>`;
+                alert("Registration error: " + err.message);
             }
         }
 
         function downloadWorkerReport() {
-            if (!cachedWorkersData || cachedWorkersData.length === 0) {
-                alert("No data available to download.");
-                return;
-            }
-
-            let csvContent = "data:text/csv;charset=utf-8,S/N,Full Name,Email Address,Highest Module Completed,Status,Certificate Number,Date Completed\n";
-
-            cachedWorkersData.forEach((worker, index) => {
-                const level = worker.highestCompletedModule || 1;
-                const isCompleted = level > 9;
-                const status = isCompleted ? 'Completed' : 'In Progress';
-                
-                const name = `"${(worker.fullName || '').replace(/"/g, '""')}"`;
-                const email = `"${(worker.email || '').replace(/"/g, '""')}"`;
-                
-                const docId = worker.id || worker.email || 'WORKER';
-                const certId = isCompleted ? `PDM-LMS-2026-${docId.substring(0, 6).toUpperCase()}` : 'N/A';
-                
-                let completionDateStr = '"N/A"';
-                if (isCompleted && worker.completedAt && worker.completedAt.toDate) {
-                    completionDateStr = `"${worker.completedAt.toDate().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}"`;
-                } else if (isCompleted) {
-                    completionDateStr = '"Completed"';
-                }
-
-                csvContent += `${index + 1},${name},${email},Module ${Math.min(level, 9)},${status},"${certId}",${completionDateStr}\n`;
+            let csv = "S/N,Full Name,Email,Progress Level,Status\n";
+            cachedWorkersData.forEach((w, i) => {
+                csv += `${i+1},"${w.fullName || ''}","${w.email}",Module ${w.highestCompletedModule || 1} of 9,${w.highestCompletedModule > 9 ? 'Completed' : 'In Progress'}\n`;
             });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('href', url);
+            a.setAttribute('download', 'PDM_Workers_Progress_Report.csv');
+            a.click();
+        }
 
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `PDM_Workers_Certificate_Report_${new Date().toISOString().slice(0,10)}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+        function downloadCertificatePDF() {
+            const element = document.getElementById('certificateCard');
+            const opt = {
+                margin:       0.5,
+                filename:     'PDM_Workers_Certificate.pdf',
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2 },
+                jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' }
+            };
+            html2pdf().from(element).set(opt).save();
+        }
+
+        function insertEmoji(emoji, elementId) {
+            document.getElementById(elementId).value += emoji;
+        }
+
+        async function loadForumMessages() {
+            const feed = document.getElementById('forumMessagesFeed');
+            feed.innerHTML = '<p class="text-xs text-slate-500 text-center py-4">Loading messages...</p>';
+            try {
+                const snap = await db.collection('forum').orderBy('createdAt', 'desc').limit(20).get();
+                feed.innerHTML = '';
+                if (snap.empty) {
+                    feed.innerHTML = '<p class="text-xs text-slate-500 text-center py-4">No discussions yet. Start one above!</p>';
+                    return;
+                }
+                snap.forEach(doc => {
+                    const data = doc.data();
+                    const d = document.createElement('div');
+                    d.className = 'bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2';
+                    d.innerHTML = `
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="font-bold text-slate-900">${data.author || 'Anonymous'}</span>
+                            <span class="text-slate-400">${data.createdAt ? new Date(data.createdAt.toDate()).toLocaleDateString() : 'Just now'}</span>
+                        </div>
+                        <p class="text-xs text-slate-700">${data.message}</p>
+                    `;
+                    feed.appendChild(d);
+                });
+            } catch (e) {
+                feed.innerHTML = '<p class="text-xs text-rose-500 text-center py-4">Error loading forum posts.</p>';
+            }
+        }
+
+        async function postForumMessage(event) {
+            event.preventDefault();
+            const msgInput = document.getElementById('forumInputMessage');
+            const message = msgInput.value.trim();
+            if (!message) return;
+
+            try {
+                await db.collection('forum').add({
+                    message: message,
+                    author: workerFullName || currentUserEmail,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                msgInput.value = '';
+                loadForumMessages();
+            } catch (e) {
+                alert("Error posting message: " + e.message);
+            }
         }
     </script>
 </body>
