@@ -393,7 +393,7 @@
                 }
 
                 updateProgressUI();
-                await fetchModulesFromFirebase();
+                await seedAndFetchModules();
             } else {
                 document.getElementById('authModal').classList.remove('hidden');
             }
@@ -472,21 +472,38 @@
             }
         }
 
-        async function fetchModulesFromFirebase() {
+        async function seedAndFetchModules() {
             try {
-                const snapshot = await db.collection('modules').orderBy('id').get();
+                let snapshot = await db.collection('modules').orderBy('id').get();
+                
+                // Automatically seed all 9 modules if collection is empty
+                if (snapshot.empty) {
+                    const batch = db.batch();
+                    for (let i = 1; i <= 9; i++) {
+                        const docRef = db.collection('modules').doc(`mod_${i}`);
+                        batch.set(docRef, {
+                            id: i,
+                            tag: `Week ${Math.ceil(i/2)} • Module ${i}`,
+                            title: i === 1 ? "Living Holiness Introduction" : `Living Holiness Module ${i}`,
+                            content: `<p class='mb-4'>Welcome to Module ${i} of the PDM Global Workers training course. Holiness is a lifestyle...</p><p>Core teachings and doctrines for spiritual growth and service excellence.</p>`,
+                            quiz: [
+                                { question: `What is the core focus of Module ${i}?`, options: ["Living a holy and dedicated life", "Casual church attendance", "Financial gain", "Secular entertainment"], answer: 0 }
+                            ]
+                        });
+                    }
+                    await batch.commit();
+                    snapshot = await db.collection('modules').orderBy('id').get();
+                }
+
                 modulesData = [];
                 snapshot.forEach(doc => {
                     modulesData.push(doc.data());
                 });
 
-                if (modulesData.length === 0) {
-                    modulesData = getFallbackModules();
-                }
-
                 renderSidebar();
                 loadModule(currentModuleId);
             } catch (e) {
+                console.error("Error loading modules from Firebase:", e);
                 modulesData = getFallbackModules();
                 renderSidebar();
                 loadModule(currentModuleId);
@@ -495,7 +512,7 @@
 
         function getFallbackModules() {
             return [
-                { id: 1, tag: "Week 1 • Module 1", title: "Living Holiness Introduction", content: "<p class='mb-4'>Welcome to the PDM Global Workers training course. Holiness is a lifestyle...</p><p>Please use the Admin Upload portal to populate course content and tests into Firestore.</p>", quiz: [{ question: "What is the primary spiritual focus of this module?", options: ["Living a holy and dedicated life", "Casual church attendance", "Financial gain", "Secular entertainment"], answer: 0 }] }
+                { id: 1, tag: "Week 1 • Module 1", title: "Living Holiness Introduction", content: "<p class='mb-4'>Welcome to the PDM Global Workers training course. Holiness is a lifestyle...</p>", quiz: [{ question: "What is the primary spiritual focus of this module?", options: ["Living a holy and dedicated life", "Casual church attendance", "Financial gain", "Secular entertainment"], answer: 0 }] }
             ];
         }
 
@@ -682,7 +699,7 @@
                 });
                 alert("Module uploaded to Firestore successfully!");
                 closeAdminModal();
-                fetchModulesFromFirebase();
+                seedAndFetchModules();
             } catch (err) {
                 alert("Error uploading module: " + err.message);
             }
