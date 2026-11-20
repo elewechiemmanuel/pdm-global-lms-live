@@ -378,6 +378,15 @@
             return `PDM-LMS-2026-${safeUid}`;
         }
 
+        function escapeHtml(str) {
+            return String(str ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
         auth.onAuthStateChanged(async (user) => {
             if (user) {
                 currentUserEmail = user.email || "";
@@ -631,7 +640,7 @@
                             : 'bg-slate-50 text-slate-400 border-slate-100 cursor-not-allowed'
                 }`;
                 btn.innerHTML = `
-                    <span class="truncate pr-2">${mod.id}. ${mod.title}</span>
+                    <span class="truncate pr-2">${mod.id}. ${escapeHtml(mod.title)}</span>
                     <i class="fa-solid ${isUnlocked ? 'fa-chevron-right' : 'fa-lock'} text-[10px]"></i>
                 `;
                 if (isUnlocked) {
@@ -662,12 +671,12 @@
                 quizSection.classList.remove('hidden');
                 quizContainer.innerHTML = mod.quiz.map((q, qIdx) => `
                     <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
-                        <p class="font-semibold text-sm text-slate-800">${qIdx + 1}. ${q.question}</p>
+                        <p class="font-semibold text-sm text-slate-800">${qIdx + 1}. ${escapeHtml(q.question)}</p>
                         <div class="space-y-1.5">
                             ${(q.options || []).map((opt, oIdx) => `
                                 <label class="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
                                     <input type="radio" name="quiz_q_${qIdx}" value="${oIdx}" class="text-purple-700">
-                                    <span>${opt}</span>
+                                    <span>${escapeHtml(opt)}</span>
                                 </label>
                             `).join('')}
                         </div>
@@ -748,8 +757,179 @@
         function closeAdminModal() { document.getElementById('adminModal').classList.add('hidden'); }
         function openAdminRegisterModal() { document.getElementById('adminRegisterModal').classList.remove('hidden'); }
         function closeAdminRegisterModal() { document.getElementById('adminRegisterModal').classList.add('hidden'); }
-        function openDashboardModal() { document.getElementById('dashboardModal').classList.remove('hidden'); }
-        function closeDashboardModal() { document.getElementById('dashboardModal').classList.add('hidden'); }
+
+        async function openDashboardModal() {
+            document.getElementById('dashboardModal').classList.remove('hidden');
+            const tbody = document.getElementById('workersTableBody');
+            tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-500">Loading worker records...</td></tr>`;
+
+            try {
+                const snapshot = await db.collection('users').get();
+                cachedWorkersData = [];
+
+                snapshot.forEach(doc => {
+                    const data = doc.data() || {};
+                    const email = data.email || '';
+                    const fullName = (data.fullName && String(data.fullName).trim()) || formatNameFallback(email, '');
+                    const highestMod = Number(data.highestCompletedModule) || 1;
+                    const totalModules = 9;
+                    const isCompleted = highestMod > totalModules;
+                    const currentDisplayMod = Math.min(highestMod, totalModules);
+
+                    cachedWorkersData.push({
+                        id: doc.id,
+                        fullName,
+                        email,
+                        highestCompletedModule: highestMod,
+                        progressLabel: isCompleted ? `9 / 9 Modules (100%)` : `Module ${currentDisplayMod} of ${totalModules}`,
+                        status: isCompleted ? 'Completed' : 'In Progress',
+                        certificateNumber: data.certificateNumber || (isCompleted ? generateCertificateNumber(doc.id) : '')
+                    });
+                });
+
+                cachedWorkersData.sort((a, b) => a.fullName.localeCompare(b.fullName));
+
+                if (cachedWorkersData.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-500">No worker records found.</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = cachedWorkersData.map((w, idx) => `
+                    <tr class="border-b hover:bg-slate-50">
+                        <td class="p-3 font-medium text-slate-600">${idx + 1}</td>
+                        <td class="p-3 font-semibold text-slate-800">${escapeHtml(w.fullName)}</td>
+                        <td class="p-3 text-slate-600">${escapeHtml(w.email)}</td>
+                        <td class="p-3 text-slate-700">${escapeHtml(w.progressLabel)}</td>
+                        <td class="p-3">
+                            <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold ${
+                                w.status === 'Completed'
+                                    ? 'bg-emerald-100 text-emerald-800'
+                                    : 'bg-amber-100 text-amber-800'
+                            }">
+                                ${escapeHtml(w.status)}
+                            </span>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error("Error loading worker records:", err);
+                tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-rose-600">Failed to load worker records: ${escapeHtml(err.message)}</td></tr>`;
+            }
+        }
+
+        function closeDashboardModal() {
+            document.getElementById('dashboardModal').classList.add('hidden');
+        }
+
+        async function handleAdminRegisterUser(event) {
+            event.preventDefault();
+            const fullName = document.getElementById('adminRegName').value.trim();
+            const email = document.getElementById('adminRegEmail').value.trim();
+            const password = document.getElementById('adminRegPassword').value;
+
+            if (!fullName || !email || !password) return;
+
+            let secondaryApp = null;
+            try {
+                secondaryApp = firebase.apps.find(app => app.name === 'SecondaryAdminApp')
+                    || firebase.initializeApp(firebaseConfig, 'SecondaryAdminApp');
+                const secondaryAuth = secondaryApp.auth();
+
+                const cred = await secondaryAuth.createUserWithEmailAndPassword(email, password);
+                const certNo = generateCertificateNumber(cred.user.uid);
+
+                await db.collection('users').doc(cred.user.uid).set({
+                    email: email,
+                    fullName: fullName,
+                    highestCompletedModule: 1,
+                    certificateNumber: certNo,
+                    registeredAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                await secondaryAuth.signOut();
+
+                alert(`Worker account created for ${fullName} (${email}).`);
+                event.target.reset();
+                closeAdminRegisterModal();
+                await openDashboardModal();
+            } catch (err) {
+                console.error("Admin registration error:", err);
+                alert("Could not register worker: " + err.message);
+            } finally {
+                if (secondaryApp) {
+                    try { await secondaryApp.delete(); } catch (_) {}
+                }
+            }
+        }
+
+        function downloadWorkerReport() {
+            if (!cachedWorkersData || cachedWorkersData.length === 0) {
+                alert("No worker records available to export. Open the dashboard first.");
+                return;
+            }
+
+            const headers = ["S/N", "Full Name", "Email Address", "Progress Level", "Status", "Certificate No"];
+            const rows = cachedWorkersData.map((w, idx) => [
+                idx + 1,
+                w.fullName,
+                w.email,
+                w.progressLabel,
+                w.status,
+                w.certificateNumber
+            ]);
+
+            const csvContent = [headers, ...rows]
+                .map(row => row.map(val => `"${String(val ?? '').replace(/"/g, '""')}"`).join(','))
+                .join('\n');
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `PDM_Workers_Progress_Report_${new Date().toISOString().slice(0, 10)}.csv`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        async function handleAdminUpload(event) {
+            event.preventDefault();
+            const modId = Number(document.getElementById('adminModId').value);
+            const modTag = document.getElementById('adminModTag').value.trim();
+            const modTitle = document.getElementById('adminModTitle').value.trim();
+            const modContent = document.getElementById('adminModContent').value;
+
+            if (!modId || !modTitle) return;
+
+            try {
+                const existingSnap = await db.collection('modules').doc(`mod_${modId}`).get();
+                const existingData = existingSnap.exists ? existingSnap.data() : {};
+
+                await db.collection('modules').doc(`mod_${modId}`).set({
+                    id: modId,
+                    tag: modTag || `Module ${modId}`,
+                    title: modTitle,
+                    content: modContent,
+                    quiz: Array.isArray(existingData.quiz) && existingData.quiz.length > 0
+                        ? existingData.quiz
+                        : [
+                            {
+                                question: `What is the core focus of Module ${modId}?`,
+                                options: ["Living a holy and dedicated life", "Casual church attendance", "Financial gain", "Secular entertainment"],
+                                answer: 0
+                            }
+                        ]
+                }, { merge: true });
+
+                alert(`Module ${modId} saved to Firestore.`);
+                closeAdminModal();
+                await seedAndFetchModules();
+            } catch (err) {
+                console.error("Error saving module:", err);
+                alert("Failed to save module: " + err.message);
+            }
+        }
     </script>
 </body>
 </html>
