@@ -87,10 +87,20 @@
             </div>
             
             <form onsubmit="handleAdminUpload(event)" class="p-6 space-y-4 overflow-y-auto text-sm flex-grow">
+                <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-amber-900">
+                    <div>
+                        <p class="font-bold"><i class="fa-solid fa-rotate"></i> Sync Official 9-Module Curriculum</p>
+                        <p class="text-[11px] text-amber-800">Updates only the <code>modules</code> collection with all 9 Living Holiness lessons & unique module quizzes. Worker records & certificates in <code>users</code> are untouched.</p>
+                    </div>
+                    <button type="button" onclick="forceSyncAllCourseModules()" class="bg-amber-600 hover:bg-amber-700 text-white px-3.5 py-2 rounded-lg font-semibold whitespace-nowrap shadow">
+                        Sync All 9 Modules
+                    </button>
+                </div>
+
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Module ID (Number)</label>
-                        <input type="number" id="adminModId" required value="1" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+                        <input type="number" id="adminModId" required value="1" min="1" max="9" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Module Tag</label>
@@ -354,6 +364,568 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
+        const COURSE_SCHEMA_VERSION = 2;
+
+        const OFFICIAL_COURSE_MODULES = [
+            {
+                id: 1,
+                tag: "Week 1: Foundations of Holiness • Module 1",
+                title: "The Call to Holiness",
+                content: `
+                    <div class="bg-purple-50 border-l-4 border-purple-700 p-4 rounded-r-xl mb-4">
+                        <p class="text-xs font-bold text-purple-900 uppercase">Memory Verse</p>
+                        <p class="italic text-slate-800 mt-1">"Because it is written, Be ye holy; for I am holy." — <strong>1 Peter 1:16</strong></p>
+                        <p class="text-xs text-slate-600 mt-2"><strong>Aim:</strong> The worker understands that holiness is God's nature and God's command, not an option for "super-Christians".</p>
+                    </div>
+                    <h4 class="font-bold text-slate-900 text-base mt-4">Teaching Points</h4>
+                    <ol class="list-decimal pl-5 space-y-2">
+                        <li><strong>Holiness starts with who God is:</strong> God is holy (Isaiah 6:3; Revelation 4:8). Holiness means separated from sin and set apart for God.</li>
+                        <li><strong>Holiness is commanded for every believer:</strong> (1 Peter 1:15-16; 1 Thess. 4:7). It is not reserved for pastors alone.</li>
+                        <li><strong>Holiness is required for heaven:</strong> (Hebrews 12:14; Revelation 21:27). Making heaven requires holiness as a lifestyle.</li>
+                        <li><strong>Holiness has two sides:</strong> Separation from sin (2 Cor. 6:17) and dedication to God (Romans 12:1-2).</li>
+                        <li><strong>Holiness is not legalism:</strong> Rules without a changed heart produce pride (Matthew 23:25-28). Holiness flows from love for God (John 14:15).</li>
+                    </ol>
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 mt-4 space-y-2 text-xs">
+                        <p><strong>Reflection & Discussion:</strong> Why do many church workers see holiness as "old-fashioned"? What does a holy worker look like in Lagos in 2026?</p>
+                        <p><strong>Daily Assignment:</strong> Read Leviticus 19, 1 Peter 1, and Hebrews 12 this week. Write one thing each chapter teaches about God's holiness.</p>
+                    </div>
+                `,
+                quiz: [
+                    {
+                        question: "Holiness simply means:",
+                        options: ["Never smiling", "Being separated from sin and set apart for God", "Wearing white", "Attending every service"],
+                        answer: 1
+                    },
+                    {
+                        question: "True or False: Holiness is only required of pastors and ministers.",
+                        options: ["True", "False"],
+                        answer: 1
+                    },
+                    {
+                        question: "Which verse says 'without holiness no man shall see the Lord'?",
+                        options: ["John 3:16", "Hebrews 12:14", "Psalm 23:1", "Genesis 1:1"],
+                        answer: 1
+                    },
+                    {
+                        question: "What are the two sides of holiness taught in Module 1?",
+                        options: [
+                            "Separation from sin and dedication to God",
+                            "Fasting every day and wearing uniforms",
+                            "Joining a choir and paying tithes only",
+                            "Avoiding all people and memorizing rules"
+                        ],
+                        answer: 0
+                    },
+                    {
+                        question: "How does true holiness differ from legalism?",
+                        options: [
+                            "Legalism focuses on love while holiness focuses on outward rules",
+                            "Holiness flows from a changed heart and love for God; legalism is rule-keeping without a changed heart",
+                            "There is no difference between holiness and legalism",
+                            "Legalism is commanded for workers while holiness is optional"
+                        ],
+                        answer: 1
+                    }
+                ]
+            },
+            {
+                id: 2,
+                tag: "Week 1: Foundations of Holiness • Module 2",
+                title: "Repentance, New Birth and Restitution",
+                content: `
+                    <div class="bg-purple-50 border-l-4 border-purple-700 p-4 rounded-r-xl mb-4">
+                        <p class="text-xs font-bold text-purple-900 uppercase">Memory Verse</p>
+                        <p class="italic text-slate-800 mt-1">"He that covereth his sins shall not prosper: but whoso confesseth and forsaketh them shall have mercy." — <strong>Proverbs 28:13</strong></p>
+                        <p class="text-xs text-slate-600 mt-2"><strong>Aim:</strong> The worker confirms a genuine new birth and settles past wrongs.</p>
+                    </div>
+                    <h4 class="font-bold text-slate-900 text-base mt-4">Teaching Points</h4>
+                    <ol class="list-decimal pl-5 space-y-2">
+                        <li><strong>Holiness begins with the new birth:</strong> (John 3:3-5; 2 Cor. 5:17). You cannot live holy without a new nature.</li>
+                        <li><strong>Repentance:</strong> Godly sorrow plus a decision to stop (2 Cor. 7:10; Acts 3:19).</li>
+                        <li><strong>Justification:</strong> God cleanses and declares us righteous as though we never sinned (Romans 5:1; Titus 3:5).</li>
+                        <li><strong>Restitution is evidence of true repentance:</strong> (Luke 19:8; Leviticus 6:1-7). Whatever robs a clear conscience before God and man should be put right without delay—return stolen items, pay what is owed, confess lies that harmed others, where it is safe and wise.</li>
+                        <li><strong>Wisdom in restitution:</strong> Seek pastoral counsel before restitution that could endanger life, marriage, or others.</li>
+                    </ol>
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 mt-4 space-y-2 text-xs">
+                        <p><strong>Reflection & Discussion:</strong> What wrongs do workers commonly leave unsettled (borrowed money, office items, exam malpractice, false claims)?</p>
+                        <p><strong>Daily Assignment:</strong> Privately list anything God brings to mind that needs restitution. Discuss with a pastor before acting.</p>
+                    </div>
+                `,
+                quiz: [
+                    {
+                        question: "Repentance is:",
+                        options: ["Feeling sorry only", "Godly sorrow with a decision to abstain from sin", "Paying money to the church", "Joining a department"],
+                        answer: 1
+                    },
+                    {
+                        question: "True or False: Restitution is a sign of true repentance.",
+                        options: ["True", "False"],
+                        answer: 0
+                    },
+                    {
+                        question: "Which man in Luke 19 promised to restore fourfold?",
+                        options: ["Peter", "Nicodemus", "Zacchaeus", "Judas"],
+                        answer: 2
+                    },
+                    {
+                        question: "What does justification mean?",
+                        options: [
+                            "Excusing our mistakes before leaders",
+                            "God cleanses and declares us righteous as though we never sinned",
+                            "Working hard enough to erase past sins",
+                            "Hiding past wrongs so no one knows"
+                        ],
+                        answer: 1
+                    },
+                    {
+                        question: "When should a worker first seek pastoral counsel before making restitution?",
+                        options: [
+                            "Whenever returning a borrowed book",
+                            "Where restitution could endanger life, marriage, or others",
+                            "Never, restitution requires no counsel",
+                            "Only when money is not involved"
+                        ],
+                        answer: 1
+                    }
+                ]
+            },
+            {
+                id: 3,
+                tag: "Week 1: Foundations of Holiness • Module 3",
+                title: "Sanctification — God's Work in the Heart",
+                content: `
+                    <div class="bg-purple-50 border-l-4 border-purple-700 p-4 rounded-r-xl mb-4">
+                        <p class="text-xs font-bold text-purple-900 uppercase">Memory Verse</p>
+                        <p class="italic text-slate-800 mt-1">"And the very God of peace sanctify you wholly... Faithful is he that calleth you, who also will do it." — <strong>1 Thessalonians 5:23-24</strong></p>
+                        <p class="text-xs text-slate-600 mt-2"><strong>Aim:</strong> The worker understands that God makes us holy and that we also pursue holiness.</p>
+                    </div>
+                    <h4 class="font-bold text-slate-900 text-base mt-4">Teaching Points</h4>
+                    <ol class="list-decimal pl-5 space-y-2">
+                        <li><strong>Sanctification is God's will for you:</strong> (1 Thess. 4:3). It is the work of the Holy Spirit (2 Thess. 2:13).</li>
+                        <li><strong>A work of grace after salvation:</strong> Sanctification follows the new birth. God cleanses the heart through faith in the blood of Jesus, and the cleansing grows deeper as we walk with Him.</li>
+                        <li><strong>God's part:</strong> The blood of Jesus cleanses (Hebrews 13:12; 1 John 1:7). Come to God in faith for a pure heart (Psalm 51:10; Matthew 5:8).</li>
+                        <li><strong>Our part:</strong> "Cleanse ourselves from all filthiness of the flesh and spirit, perfecting holiness in the fear of God" (2 Cor. 7:1). Consecration is the daily yielding of ourselves (Romans 6:13, 19).</li>
+                        <li><strong>The Holy Spirit empowers holiness:</strong> (Galatians 5:16; Acts 1:8). Workers should seek the baptism of the Holy Spirit.</li>
+                    </ol>
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 mt-4 space-y-2 text-xs">
+                        <p><strong>Reflection & Discussion:</strong> Is holiness something God gives, something we do, or both? Use Scripture.</p>
+                        <p><strong>Daily Assignment:</strong> Each morning pray Psalm 51:10 and Romans 12:1 aloud. Note any change in your thoughts and reactions.</p>
+                    </div>
+                `,
+                quiz: [
+                    {
+                        question: "According to 1 Thessalonians 4:3, what is the will of God for believers?",
+                        options: ["Wealth", "Sanctification", "Fame", "Marriage"],
+                        answer: 1
+                    },
+                    {
+                        question: "True or False: Sanctification is received by faith in the blood of Jesus, not by human struggle alone.",
+                        options: ["True", "False"],
+                        answer: 0
+                    },
+                    {
+                        question: "Which word describes the daily yielding of ourselves to God?",
+                        options: ["Prosperity", "Consecration", "Success", "Vision"],
+                        answer: 1
+                    },
+                    {
+                        question: "What are God's part and our part in sanctification?",
+                        options: [
+                            "God sanctifies by the blood of Jesus and the Spirit; we yield, cleanse ourselves, and pursue holiness",
+                            "We do all the work first, then God approves it",
+                            "God forces holiness without our obedience",
+                            "Sanctification happens automatically without faith or yielding"
+                        ],
+                        answer: 0
+                    },
+                    {
+                        question: "What does 2 Corinthians 7:1 instruct believers to do?",
+                        options: [
+                            "Cleanse ourselves from all filthiness of the flesh and spirit, perfecting holiness in the fear of God",
+                            "Focus only on outward appearance",
+                            "Rely solely on church leadership for spiritual growth",
+                            "Avoid praying for a pure heart"
+                        ],
+                        answer: 0
+                    }
+                ]
+            },
+            {
+                id: 4,
+                tag: "Week 2: Personal Holiness • Module 4",
+                title: "Purity of Heart and Mind",
+                content: `
+                    <div class="bg-purple-50 border-l-4 border-purple-700 p-4 rounded-r-xl mb-4">
+                        <p class="text-xs font-bold text-purple-900 uppercase">Memory Verse</p>
+                        <p class="italic text-slate-800 mt-1">"Blessed are the pure in heart: for they shall see God." — <strong>Matthew 5:8</strong></p>
+                        <p class="text-xs text-slate-600 mt-2"><strong>Aim:</strong> The worker guards the inner life, where sin begins.</p>
+                    </div>
+                    <h4 class="font-bold text-slate-900 text-base mt-4">Teaching Points</h4>
+                    <ol class="list-decimal pl-5 space-y-2">
+                        <li><strong>Sin starts in the heart:</strong> (Mark 7:21-23; James 1:14-15). Purity of heart is central to Christian living.</li>
+                        <li><strong>Guard your thought life:</strong> (Philippians 4:8; 2 Cor. 10:5). Take thoughts captive before they become actions.</li>
+                        <li><strong>Sexual purity:</strong> (1 Thess. 4:3-5; 1 Cor. 6:18-20). Flee fornication, adultery, pornography, and secret chats. Your body is the temple of the Holy Spirit.</li>
+                        <li><strong>Guard your eyes and phone:</strong> (Job 31:1; Psalm 101:3). Social media, films, and music feed the heart.</li>
+                        <li><strong>Inner sins workers ignore:</strong> Pride, envy, bitterness, and unforgiveness (Hebrews 12:15; Ephesians 4:31-32).</li>
+                    </ol>
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 mt-4 space-y-2 text-xs">
+                        <p><strong>Reflection & Discussion:</strong> What practical boundaries help a single worker and a married worker stay pure?</p>
+                        <p><strong>Daily Assignment:</strong> Do a 7-day "phone audit": unfollow or delete any app, page, or chat that weakens your purity.</p>
+                    </div>
+                `,
+                quiz: [
+                    {
+                        question: "According to Mark 7:21-23, where does evil come from?",
+                        options: ["The devil only", "The heart", "The village", "Money"],
+                        answer: 1
+                    },
+                    {
+                        question: "True or False: Unforgiveness and envy are not real holiness issues if outward behaviour is good.",
+                        options: ["True", "False"],
+                        answer: 1
+                    },
+                    {
+                        question: "Who made a covenant with his eyes?",
+                        options: ["Job", "Samson", "David", "Saul"],
+                        answer: 0
+                    },
+                    {
+                        question: "Which of the following is a practical way to guard sexual purity taught in Module 4?",
+                        options: [
+                            "Flee temptation, avoid secret chats, guard eyes and phone, and maintain accountability",
+                            "Trust your own strength in compromising places",
+                            "Keep private chats hidden from everyone",
+                            "Watch any media as long as no one sees"
+                        ],
+                        answer: 0
+                    },
+                    {
+                        question: "How does Philippians 4:8 apply to social media and media consumption?",
+                        options: [
+                            "Follow everything trending online",
+                            "Think on what is true, pure, and lovely, and filter what you follow and watch",
+                            "Use social media without any boundaries",
+                            "Only avoid social media on Sundays"
+                        ],
+                        answer: 1
+                    }
+                ]
+            },
+            {
+                id: 5,
+                tag: "Week 2: Personal Holiness • Module 5",
+                title: "Holiness of Tongue and Conduct",
+                content: `
+                    <div class="bg-purple-50 border-l-4 border-purple-700 p-4 rounded-r-xl mb-4">
+                        <p class="text-xs font-bold text-purple-900 uppercase">Memory Verse</p>
+                        <p class="italic text-slate-800 mt-1">"But let your communication be, Yea, yea; Nay, nay: for whatsoever is more than these cometh of evil." — <strong>Matthew 5:37</strong></p>
+                        <p class="text-xs text-slate-600 mt-2"><strong>Aim:</strong> The worker's words and dealings reflect Christ.</p>
+                    </div>
+                    <h4 class="font-bold text-slate-900 text-base mt-4">Teaching Points</h4>
+                    <ol class="list-decimal pl-5 space-y-2">
+                        <li><strong>No swearing or cursing:</strong> (James 5:12; Romans 12:14). Swearing, cursing, and blasphemy have no place in a worker's mouth.</li>
+                        <li><strong>No foolish talking or crude jokes:</strong> (Ephesians 5:4). Avoiding foolish talking and jesting is a mark of the dedicated Christian.</li>
+                        <li><strong>Truthfulness and integrity:</strong> No lies, "white lies", false receipts, or inflated claims (Ephesians 4:25; Proverbs 11:1).</li>
+                        <li><strong>No gossip, slander, or backbiting:</strong> In the church or the department (Proverbs 16:28; James 4:11).</li>
+                        <li><strong>Respect authority:</strong> Honour parents, leaders, and government; rebellion against church leadership is condemned (Hebrews 13:17; Romans 13:1).</li>
+                    </ol>
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 mt-4 space-y-2 text-xs">
+                        <p><strong>Reflection & Discussion:</strong> Where is it hardest to be truthful — at work, in business, or in church? Why?</p>
+                        <p><strong>Daily Assignment:</strong> For 7 days, keep a "tongue journal": note one time you were tempted to lie, gossip, or curse, and what you did.</p>
+                    </div>
+                `,
+                quiz: [
+                    {
+                        question: "James 5:12 teaches believers to:",
+                        options: ["Swear by heaven only", "Not swear at all", "Swear in court only", "Curse enemies"],
+                        answer: 1
+                    },
+                    {
+                        question: "True or False: 'White lies' are acceptable for church workers if they keep the peace.",
+                        options: ["True", "False"],
+                        answer: 1
+                    },
+                    {
+                        question: "Ephesians 5:4 warns against:",
+                        options: ["Singing", "Foolish talking and jesting", "Fasting", "Giving"],
+                        answer: 1
+                    },
+                    {
+                        question: "Which of these are sins of the tongue common in church departments?",
+                        options: [
+                            "Gossip, slander, backbiting, and foolish jesting",
+                            "Singing hymns and praying together",
+                            "Encouraging new converts",
+                            "Reporting early for duty"
+                        ],
+                        answer: 0
+                    },
+                    {
+                        question: "How should a worker respond when they disagree with a leader's instruction?",
+                        options: [
+                            "Murmur and complain to other department members",
+                            "Speak privately and respectfully with the leader, and obey unless it is sin",
+                            "Publicly challenge the leader during service",
+                            "Ignore the instruction quietly"
+                        ],
+                        answer: 1
+                    }
+                ]
+            },
+            {
+                id: 6,
+                tag: "Week 2: Personal Holiness • Module 6",
+                title: "Separation from the World — Dressing, Entertainment and Company",
+                content: `
+                    <div class="bg-purple-50 border-l-4 border-purple-700 p-4 rounded-r-xl mb-4">
+                        <p class="text-xs font-bold text-purple-900 uppercase">Memory Verse</p>
+                        <p class="italic text-slate-800 mt-1">"Love not the world, neither the things that are in the world." — <strong>1 John 2:15</strong></p>
+                        <p class="text-xs text-slate-600 mt-2"><strong>Aim:</strong> The worker lives distinct from the world without becoming proud or judgmental.</p>
+                    </div>
+                    <h4 class="font-bold text-slate-900 text-base mt-4">Teaching Points</h4>
+                    <ol class="list-decimal pl-5 space-y-2">
+                        <li><strong>Be separate:</strong> (2 Cor. 6:14-18; Romans 12:2). God's children must separate and dedicate themselves to God.</li>
+                        <li><strong>Modest dressing:</strong> (1 Timothy 2:9-10; 1 Peter 3:3-4). Be moderate in adornment and do not wear clothing of the opposite sex (Deut. 22:5). Holiness is within and without.</li>
+                        <li><strong>PDM worker dress guidance:</strong> Dress decently and modestly for the sanctuary; nothing see-through, too tight, too short, or low-cut; neat and well-groomed. When in doubt, choose the more modest option. Department heads may set uniforms.</li>
+                        <li><strong>Entertainment and places:</strong> (1 Thess. 5:22; Galatians 5:19-21). Avoid clubs, drunkenness, revelling, and content that celebrates sin.</li>
+                        <li><strong>Company and relationships:</strong> (1 Cor. 15:33; Psalm 1:1). Be friendly to all, but let your closest friends build your faith.</li>
+                        <li><strong>Avoid pride:</strong> Separation is from sin, not from people. Jesus ate with sinners to save them (Luke 15:1-2).</li>
+                    </ol>
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 mt-4 space-y-2 text-xs">
+                        <p><strong>Reflection & Discussion:</strong> How do we keep a dress standard without judging visitors or new converts?</p>
+                        <p><strong>Daily Assignment:</strong> Review your wardrobe and entertainment against 1 Timothy 2:9-10 and Philippians 4:8. Remove what does not honour God.</p>
+                    </div>
+                `,
+                quiz: [
+                    {
+                        question: "2 Corinthians 6:17 commands believers to:",
+                        options: ["Come out and be separate", "Leave the church", "Stop working", "Avoid all unbelievers"],
+                        answer: 0
+                    },
+                    {
+                        question: "True or False: Separation from the world means refusing to talk to unbelievers.",
+                        options: ["True", "False"],
+                        answer: 1
+                    },
+                    {
+                        question: "Which verse warns against wearing clothes of the opposite sex?",
+                        options: ["Deut. 22:5", "John 3:16", "Psalm 1:1", "Acts 2:38"],
+                        answer: 0
+                    },
+                    {
+                        question: "Which of these reflects the PDM worker dress guidance?",
+                        options: [
+                            "Neat, well-groomed, and modest — nothing see-through, too tight, too short, or low-cut",
+                            "Whatever is trending in nightclubs",
+                            "Dressing casually without care for the sanctuary",
+                            "Only dressing modestly when preaching"
+                        ],
+                        answer: 0
+                    },
+                    {
+                        question: "What does 1 Corinthians 15:33 teach about a worker's friendships?",
+                        options: [
+                            "Close friendships never influence spiritual life",
+                            "Evil communications (bad company) corrupt good manners; closest friends should build your faith",
+                            "Workers should have no friends at all",
+                            "Unbelievers should be treated with pride"
+                        ],
+                        answer: 1
+                    }
+                ]
+            },
+            {
+                id: 7,
+                tag: "Week 3: Holiness in Service • Module 7",
+                title: "The Holy Worker — Character Before Gifting",
+                content: `
+                    <div class="bg-purple-50 border-l-4 border-purple-700 p-4 rounded-r-xl mb-4">
+                        <p class="text-xs font-bold text-purple-900 uppercase">Memory Verse</p>
+                        <p class="italic text-slate-800 mt-1">"If a man therefore purge himself from these, he shall be a vessel unto honour, sanctified, and meet for the master's use." — <strong>2 Timothy 2:21</strong></p>
+                        <p class="text-xs text-slate-600 mt-2"><strong>Aim:</strong> The worker understands that God uses clean vessels, and that a worker's life is a public sermon.</p>
+                    </div>
+                    <h4 class="font-bold text-slate-900 text-base mt-4">Teaching Points</h4>
+                    <ol class="list-decimal pl-5 space-y-2">
+                        <li><strong>God looks for clean vessels:</strong> (2 Tim. 2:19-21). "Let every one that nameth the name of Christ depart from iniquity" (2 Tim. 2:19).</li>
+                        <li><strong>Character before gifting:</strong> Samson had power but lost it through compromise (Judges 16:20). Gifts can operate where character is weak; that is not God's approval (Matthew 7:21-23).</li>
+                        <li><strong>Requirements for those who serve:</strong> (1 Timothy 3:8-13; Acts 6:3): honest report, full of the Spirit and wisdom, not double-tongued, not greedy.</li>
+                        <li><strong>Holiness is protection:</strong> Holiness keeps the enemy out; sin opens doors to the enemy (Ephesians 4:27).</li>
+                        <li><strong>Serving with the right heart:</strong> Humility, punctuality, faithfulness in small things, no partiality, and no misuse of church funds or property (Luke 16:10; 1 Cor. 4:2).</li>
+                        <li><strong>Intimacy, integrity, impact:</strong> Integrity and intimacy with God are the base of lasting impact.</li>
+                    </ol>
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 mt-4 space-y-2 text-xs">
+                        <p><strong>Reflection & Discussion:</strong> Which of the 1 Timothy 3 qualities does our department most need to grow in?</p>
+                        <p><strong>Daily Assignment:</strong> Ask one leader and one fellow worker to name one area where your conduct in service could better reflect Christ.</p>
+                    </div>
+                `,
+                quiz: [
+                    {
+                        question: "2 Timothy 2:21 says a purged vessel is:",
+                        options: ["Famous", "Meet for the master's use", "Rich", "A pastor"],
+                        answer: 1
+                    },
+                    {
+                        question: "True or False: If a worker's gift is working, it proves God approves of their lifestyle.",
+                        options: ["True", "False"],
+                        answer: 1
+                    },
+                    {
+                        question: "Which judge lost his strength through compromise?",
+                        options: ["Gideon", "Samson", "Deborah", "Samuel"],
+                        answer: 1
+                    },
+                    {
+                        question: "Which qualifications for those who serve are listed in Acts 6:3 and 1 Timothy 3?",
+                        options: [
+                            "Honest report, full of the Spirit and wisdom, not double-tongued, and not greedy",
+                            "Wealth, popularity, loud voice, and seniority",
+                            "Strong connections and secular titles",
+                            "Gifting without accountability"
+                        ],
+                        answer: 0
+                    },
+                    {
+                        question: "How does holiness serve as spiritual protection for a worker?",
+                        options: [
+                            "It guarantees immunity from all work",
+                            "Sin gives place to the devil (Ephesians 4:27), whereas holiness closes doors to the enemy",
+                            "It replaces prayer and watchfulness",
+                            "It prevents any temptation from ever coming"
+                        ],
+                        answer: 1
+                    }
+                ]
+            },
+            {
+                id: 8,
+                tag: "Week 3: Holiness in Service • Module 8",
+                title: "Holiness in Home, Money and Workplace",
+                content: `
+                    <div class="bg-purple-50 border-l-4 border-purple-700 p-4 rounded-r-xl mb-4">
+                        <p class="text-xs font-bold text-purple-900 uppercase">Memory Verse</p>
+                        <p class="italic text-slate-800 mt-1">"Marriage is honourable in all, and the bed undefiled." — <strong>Hebrews 13:4</strong></p>
+                        <p class="text-xs text-slate-600 mt-2"><strong>Aim:</strong> Holiness reaches beyond the church building into family, finances, and work.</p>
+                    </div>
+                    <h4 class="font-bold text-slate-900 text-base mt-4">Teaching Points</h4>
+                    <ol class="list-decimal pl-5 space-y-2">
+                        <li><strong>Marriage:</strong> One husband, one wife; faithfulness; love and submission (Ephesians 5:22-33). Divorce is not God's plan (Malachi 2:16; Matthew 19:6).</li>
+                        <li><strong>Singles:</strong> Courtship in purity; no living together before marriage; no unequal yoke (2 Cor. 6:14).</li>
+                        <li><strong>Parenting and home:</strong> The worker's home should model Christ; raise children in the Lord (Ephesians 6:4; Joshua 24:15).</li>
+                        <li><strong>Money:</strong> No fraud, bribery, or dishonest gain (Proverbs 11:1); do not wilfully enter debts you cannot repay (Romans 13:8); faithful tithes and offerings (Malachi 3:10).</li>
+                        <li><strong>Workplace:</strong> Honest hours, no inflated receipts, no exam or document fraud, respect employers (Colossians 3:22-24).</li>
+                    </ol>
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 mt-4 space-y-2 text-xs">
+                        <p><strong>Reflection & Discussion:</strong> What are the most common holiness pressures for workers in Nigerian workplaces and businesses?</p>
+                        <p><strong>Daily Assignment:</strong> Review your finances and work habits for one week. Write one area to correct and one action you will take.</p>
+                    </div>
+                `,
+                quiz: [
+                    {
+                        question: "Hebrews 13:4 teaches that marriage is:",
+                        options: ["Optional", "Honourable in all", "Only for pastors", "A contract to be broken"],
+                        answer: 1
+                    },
+                    {
+                        question: "True or False: Taking a small bribe at work is acceptable if everyone does it.",
+                        options: ["True", "False"],
+                        answer: 1
+                    },
+                    {
+                        question: "Romans 13:8 says:",
+                        options: [
+                            "Owe no man anything, but to love one another",
+                            "Borrow freely",
+                            "Never give",
+                            "Lend with interest"
+                        ],
+                        answer: 0
+                    },
+                    {
+                        question: "How can a worker show holiness at the workplace?",
+                        options: [
+                            "Honest hours, no bribes, no false receipts or document fraud, and respecting employers",
+                            "Preaching during paid work hours while neglecting duties",
+                            "Inflating company expenses slightly",
+                            "Following corrupt office shortcuts to fit in"
+                        ],
+                        answer: 0
+                    },
+                    {
+                        question: "What does 2 Corinthians 6:14 teach single workers about relationships?",
+                        options: [
+                            "Marry anyone as long as they promise to attend church later",
+                            "Do not be unequally yoked — do not marry or court an unbeliever",
+                            "Live together before marriage to test compatibility",
+                            "Keep courtship completely secret from spiritual leaders"
+                        ],
+                        answer: 1
+                    }
+                ]
+            },
+            {
+                id: 9,
+                tag: "Week 3: Holiness in Service • Module 9",
+                title: "Sustaining Holiness — Prayer, Word, Accountability and Restoration",
+                content: `
+                    <div class="bg-purple-50 border-l-4 border-purple-700 p-4 rounded-r-xl mb-4">
+                        <p class="text-xs font-bold text-purple-900 uppercase">Memory Verse</p>
+                        <p class="italic text-slate-800 mt-1">"Thy word have I hid in mine heart, that I might not sin against thee." — <strong>Psalm 119:11</strong></p>
+                        <p class="text-xs text-slate-600 mt-2"><strong>Aim:</strong> The worker builds habits that keep them holy for life, and knows what to do after a fall.</p>
+                    </div>
+                    <h4 class="font-bold text-slate-900 text-base mt-4">Teaching Points</h4>
+                    <ol class="list-decimal pl-5 space-y-2">
+                        <li><strong>The Word:</strong> Daily Bible reading and memorising (Psalm 119:9-11; Joshua 1:8).</li>
+                        <li><strong>Prayer and fasting:</strong> Fervent prayer is a check against the flesh; Jesus said "watch and pray" (Matthew 26:41).</li>
+                        <li><strong>Walk in the Spirit:</strong> (Galatians 5:16, 22-23). The fruit of the Spirit is the evidence of holiness.</li>
+                        <li><strong>Accountability:</strong> Have a trusted mature believer; confess faults (James 5:16); attend fellowship (Hebrews 10:25).</li>
+                        <li><strong>If you fall:</strong> Do not hide (Proverbs 28:13). Confess to God (1 John 1:9), repent, make restitution where needed, and submit to restoration (Galatians 6:1). Church discipline exists to restore, not destroy (Matthew 18:15).</li>
+                        <li><strong>Look to the end:</strong> Christ is coming for a church without spot or wrinkle (Ephesians 5:27; 1 John 3:2-3).</li>
+                    </ol>
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 mt-4 space-y-2 text-xs">
+                        <p><strong>Reflection & Discussion:</strong> What daily routine (morning and night) will you commit to after this course?</p>
+                        <p><strong>Daily Assignment:</strong> Write your personal holiness plan: Bible reading time, prayer time, fasting day, and accountability partner.</p>
+                    </div>
+                `,
+                quiz: [
+                    {
+                        question: "Psalm 119:11 says hiding God's Word in the heart helps us to:",
+                        options: ["Get rich", "Not sin against God", "Preach louder", "Win arguments"],
+                        answer: 1
+                    },
+                    {
+                        question: "True or False: A worker who falls into sin should hide it to protect the church's image.",
+                        options: ["True", "False"],
+                        answer: 1
+                    },
+                    {
+                        question: "According to 1 John 1:9, if we confess our sins God will:",
+                        options: ["Punish us", "Forgive and cleanse us", "Ignore us", "Remove our gifts"],
+                        answer: 1
+                    },
+                    {
+                        question: "Which habits help a worker sustain holiness for life?",
+                        options: [
+                            "Daily Word study, prayer and fasting, walking in the Spirit, fellowship, and accountability",
+                            "Relying only on past spiritual experiences",
+                            "Avoiding accountability so nobody knows your struggles",
+                            "Serving in multiple departments without personal devotion"
+                        ],
+                        answer: 0
+                    },
+                    {
+                        question: "Using Galatians 6:1, how should the church treat a worker who has fallen?",
+                        options: [
+                            "Publicly mock and permanently reject them",
+                            "Restore the fallen gently in the spirit of meekness, watching yourself",
+                            "Ignore the sin completely without correction",
+                            "Gossip about their fall across departments"
+                        ],
+                        answer: 1
+                    }
+                ]
+            }
+        ];
+
         let isRegisterMode = false;
         let modulesData = [];
         let currentModuleId = 1;
@@ -570,32 +1142,72 @@
             }
         }
 
+        function hasPlaceholderQuiz(mod) {
+            if (!mod || !Array.isArray(mod.quiz) || mod.quiz.length === 0) return true;
+            return mod.quiz.some(q =>
+                typeof q.question === 'string' &&
+                q.question.startsWith('What is the core focus of Module ')
+            );
+        }
+
+        async function writeOfficialModulesToFirestore() {
+            const batch = db.batch();
+            OFFICIAL_COURSE_MODULES.forEach(mod => {
+                const docRef = db.collection('modules').doc(`mod_${mod.id}`);
+                batch.set(docRef, {
+                    id: mod.id,
+                    tag: mod.tag,
+                    title: mod.title,
+                    content: mod.content,
+                    quiz: mod.quiz,
+                    schemaVersion: COURSE_SCHEMA_VERSION
+                });
+            });
+            await batch.commit();
+        }
+
         async function seedAndFetchModules() {
             try {
                 let snapshot = await db.collection('modules').orderBy('id').get();
-                
-                if (snapshot.empty) {
-                    const batch = db.batch();
-                    for (let i = 1; i <= 9; i++) {
-                        const docRef = db.collection('modules').doc(`mod_${i}`);
-                        batch.set(docRef, {
-                            id: i,
-                            tag: `Week ${Math.ceil(i/2)} • Module ${i}`,
-                            title: i === 1 ? "Living Holiness Introduction" : `Living Holiness Module ${i}`,
-                            content: `<p class='mb-4'>Welcome to Module ${i} of the PDM Global Workers training course. Holiness is a lifestyle...</p><p>Core teachings and doctrines for spiritual growth and service excellence.</p>`,
-                            quiz: [
-                                { question: `What is the core focus of Module ${i}?`, options: ["Living a holy and dedicated life", "Casual church attendance", "Financial gain", "Secular entertainment"], answer: 0 }
-                            ]
-                        });
+                const existingDocs = [];
+                snapshot.forEach(doc => existingDocs.push(doc.data()));
+
+                const needsCurriculumUpgrade =
+                    existingDocs.length < 9 ||
+                    existingDocs.some(m => Number(m.schemaVersion || 1) < COURSE_SCHEMA_VERSION || hasPlaceholderQuiz(m));
+
+                if (needsCurriculumUpgrade) {
+                    try {
+                        await writeOfficialModulesToFirestore();
+                        snapshot = await db.collection('modules').orderBy('id').get();
+                    } catch (writeErr) {
+                        console.warn("Could not auto-write upgraded curriculum to Firestore (using local official curriculum):", writeErr);
+                        modulesData = OFFICIAL_COURSE_MODULES.map(m => ({ ...m }));
+                        renderSidebar();
+                        loadModule(currentModuleId);
+                        return;
                     }
-                    await batch.commit();
-                    snapshot = await db.collection('modules').orderBy('id').get();
                 }
 
-                modulesData = [];
+                const byId = new Map();
                 snapshot.forEach(doc => {
-                    modulesData.push(doc.data());
+                    const data = doc.data();
+                    const idNum = Number(data.id);
+                    const official = OFFICIAL_COURSE_MODULES.find(m => m.id === idNum);
+                    if (official && hasPlaceholderQuiz(data)) {
+                        byId.set(idNum, { ...official });
+                    } else {
+                        byId.set(idNum, data);
+                    }
                 });
+
+                OFFICIAL_COURSE_MODULES.forEach(official => {
+                    if (!byId.has(official.id)) {
+                        byId.set(official.id, { ...official });
+                    }
+                });
+
+                modulesData = Array.from(byId.values()).sort((a, b) => Number(a.id) - Number(b.id));
 
                 renderSidebar();
                 loadModule(currentModuleId);
@@ -608,19 +1220,21 @@
         }
 
         function getFallbackModules() {
-            const fallback = [];
-            for (let i = 1; i <= 9; i++) {
-                fallback.push({
-                    id: i,
-                    tag: `Week ${Math.ceil(i/2)} • Module ${i}`,
-                    title: i === 1 ? "Living Holiness Introduction" : `Living Holiness Module ${i}`,
-                    content: `<p class='mb-4'>Welcome to Module ${i} of the PDM Global Workers training course. Holiness is a lifestyle...</p><p>Core teachings and doctrines for spiritual growth and service excellence.</p>`,
-                    quiz: [
-                        { question: `What is the core focus of Module ${i}?`, options: ["Living a holy and dedicated life", "Casual church attendance", "Financial gain", "Secular entertainment"], answer: 0 }
-                    ]
-                });
+            return OFFICIAL_COURSE_MODULES.map(m => ({ ...m }));
+        }
+
+        async function forceSyncAllCourseModules() {
+            if (!confirm("This will update all 9 course modules and quizzes in Firestore to the official Living Holiness manual. Existing worker completion records and certificates will NOT be changed. Continue?")) {
+                return;
             }
-            return fallback;
+            try {
+                await writeOfficialModulesToFirestore();
+                alert("All 9 official course modules and quizzes have been synced to Firestore!");
+                await seedAndFetchModules();
+            } catch (err) {
+                console.error("Error syncing modules:", err);
+                alert("Failed to sync modules: " + err.message);
+            }
         }
 
         function renderSidebar() {
@@ -905,21 +1519,19 @@
             try {
                 const existingSnap = await db.collection('modules').doc(`mod_${modId}`).get();
                 const existingData = existingSnap.exists ? existingSnap.data() : {};
+                const official = OFFICIAL_COURSE_MODULES.find(m => m.id === modId);
+
+                const resolvedQuiz = (Array.isArray(existingData.quiz) && existingData.quiz.length > 0 && !hasPlaceholderQuiz(existingData))
+                    ? existingData.quiz
+                    : (official ? official.quiz : []);
 
                 await db.collection('modules').doc(`mod_${modId}`).set({
                     id: modId,
                     tag: modTag || `Module ${modId}`,
                     title: modTitle,
                     content: modContent,
-                    quiz: Array.isArray(existingData.quiz) && existingData.quiz.length > 0
-                        ? existingData.quiz
-                        : [
-                            {
-                                question: `What is the core focus of Module ${modId}?`,
-                                options: ["Living a holy and dedicated life", "Casual church attendance", "Financial gain", "Secular entertainment"],
-                                answer: 0
-                            }
-                        ]
+                    quiz: resolvedQuiz,
+                    schemaVersion: COURSE_SCHEMA_VERSION
                 }, { merge: true });
 
                 alert(`Module ${modId} saved to Firestore.`);
